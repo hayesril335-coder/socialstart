@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vercel/
+.env
+*.log
+*.tsbuildinfo
+client/vite.config.js
+client/vite.config.d.ts

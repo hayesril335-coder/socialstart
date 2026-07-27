@@ -1,0 +1,1 @@
+{"name":"socialstart","private":true,"scripts":{"dev":"pnpm --dir client dev","build":"pnpm --dir client build","server":"pnpm --dir server dev"}}

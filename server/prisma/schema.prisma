@@ -1,0 +1,55 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+enum MediaType { IMAGE VIDEO }
+enum PostType { STANDARD PHOTO VIDEO }
+enum Visibility { PUBLIC FOLLOWERS PRIVATE }
+enum PromoStatus { ACTIVE PAUSED_NO_POINTS PROCESSING REJECTED DELETED }
+enum OrderStatus { PENDING PAID FULFILLED SHIPPED CANCELLED REFUNDED }
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  passwordHash String?
+  googleId String? @unique
+  username String @unique
+  name String
+  bio String?
+  relationshipStatus String?
+  profilePictureUrl String?
+  themePreference String @default("light")
+  latitudeApproximate Decimal?
+  longitudeApproximate Decimal?
+  locationEnabled Boolean @default(false)
+  accountStatus String @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  statistics UserStatistics?
+  posts Post[]
+  stories Story[]
+  promos OneForOnePromo[]
+  followers Follow[] @relation("following")
+  following Follow[] @relation("follower")
+  likes PostLike[]
+  savedPosts SavedPost[]
+  comments Comment[]
+  wallet Wallet?
+  store Store?
+  cart Cart?
+  addresses Address[]
+  notifications Notification[] @relation("NotificationUser")
+}
+model UserStatistics { id String @id @default(cuid()) userId String @unique followersCount Int @default(0) followingCount Int @default(0) totalLikesReceived Int @default(0) totalViewsReceived Int @default(0) postsCount Int @default(0) user User @relation(fields:[userId],references:[id],onDelete:Cascade) }
+model Follow { id String @id @default(cuid()) followerId String followingId String createdAt DateTime @default(now()) follower User @relation("follower",fields:[followerId],references:[id],onDelete:Cascade) following User @relation("following",fields:[followingId],references:[id],onDelete:Cascade) @@unique([followerId,followingId]) }
+model Post { id String @id @default(cuid()) creatorId String title String postType PostType @default(STANDARD) visibility Visibility @default(PUBLIC) mediaType MediaType mediaUrl String thumbnailUrl String? durationSeconds Int? likesCount Int @default(0) viewsCount Int @default(0) commentsCount Int @default(0) sharesCount Int @default(0) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt deletedAt DateTime? creator User @relation(fields:[creatorId],references:[id]) likes PostLike[] saves SavedPost[] comments Comment[] }
+model PostLike { id String @id @default(cuid()) postId String userId String createdAt DateTime @default(now()) post Post @relation(fields:[postId],references:[id],onDelete:Cascade) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@unique([postId,userId]) }
+model SavedPost { id String @id @default(cuid()) postId String userId String createdAt DateTime @default(now()) post Post @relation(fields:[postId],references:[id],onDelete:Cascade) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@unique([postId,userId]) }
+model Comment { id String @id @default(cuid()) postId String authorId String body String parentCommentId String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt deletedAt DateTime? post Post @relation(fields:[postId],references:[id],onDelete:Cascade) author User @relation(fields:[authorId],references:[id]) }
+model Story { id String @id @default(cuid()) creatorId String title String? mediaType MediaType mediaUrl String thumbnailUrl String? createdAt DateTime @default(now()) expiresAt DateTime deletedAt DateTime? creator User @relation(fields:[creatorId],references:[id]) }
+model OneForOnePromo { id String @id @default(cuid()) creatorId String title String videoUrl String thumbnailUrl String? durationSeconds Int freePlayRemaining Boolean @default(true) status PromoStatus @default(PROCESSING) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt creator User @relation(fields:[creatorId],references:[id]) }
+model Store { id String @id @default(cuid()) ownerId String @unique name String description String? isActive Boolean @default(true) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt owner User @relation(fields:[ownerId],references:[id]) products Product[] }
+model Product { id String @id @default(cuid()) storeId String title String description String mediaType MediaType mediaUrl String thumbnailUrl String? priceCents Int quantityAvailable Int isActive Boolean @default(true) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt store Store @relation(fields:[storeId],references:[id]) cartItems CartItem[] }
+model Cart { id String @id @default(cuid()) userId String @unique createdAt DateTime @default(now()) updatedAt DateTime @updatedAt user User @relation(fields:[userId],references:[id]) items CartItem[] }
+model CartItem { id String @id @default(cuid()) cartId String productId String quantity Int @default(1) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt cart Cart @relation(fields:[cartId],references:[id]) product Product @relation(fields:[productId],references:[id]) @@unique([cartId,productId]) }
+model Wallet { id String @id @default(cuid()) userId String @unique availableBalanceCents Int @default(0) pendingBalanceCents Int @default(0) updatedAt DateTime @updatedAt user User @relation(fields:[userId],references:[id]) transactions WalletTransaction[] }
+model WalletTransaction { id String @id @default(cuid()) walletId String amountCents Int balanceAfterCents Int type String status String stripePaymentIntentId String? createdAt DateTime @default(now()) wallet Wallet @relation(fields:[walletId],references:[id]) }
+model Address { id String @id @default(cuid()) userId String fullName String addressLine1 String addressLine2 String? city String state String postalCode String country String isDefaultShipping Boolean @default(false) isDefaultBilling Boolean @default(false) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt user User @relation(fields:[userId],references:[id],onDelete:Cascade) }
+model Notification { id String @id @default(cuid()) userId String type String actorId String? postId String? messageId String? orderId String? readAt DateTime? createdAt DateTime @default(now()) user User @relation("NotificationUser",fields:[userId],references:[id]) }
