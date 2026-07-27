@@ -7,14 +7,16 @@ import { PostCard } from '../../components/PostCard'
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
+ const {dark,setDark,balance,points,pointsUsed,creatorPoints,userPosts,publicPosts,savedPosts,likedPostIds,followingUsernames,toggleFollow}=useApp()
  const readOwnProfile=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}')}catch{return {}}}
  const [savedProfile,setSavedProfile]=useState<Record<string,string>>(readOwnProfile)
  useEffect(()=>{const update=()=>setSavedProfile(readOwnProfile());window.addEventListener('socialstart-profile-updated',update);return()=>window.removeEventListener('socialstart-profile-updated',update)},[])
- const foundProfile=profiles.find(item=>item.username===username)||profiles[0]
+ const foundProfile=profiles.find(item=>item.username===username)
+ const publicUserPosts=publicPosts.filter(item=>item.username===username)
+ const publicIdentity=publicUserPosts[0]
  const profile=own
   ? {name:savedProfile.name||'Alex Morgan',user:savedProfile.username||'alexmorgan',avatar:savedProfile.avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',bio:savedProfile.bio||'Creative director, weekend wanderer, and believer in making the internet feel a little more human.',location:savedProfile.location||'Los Angeles, CA'}
-  : {name:foundProfile.name,user:foundProfile.username,avatar:foundProfile.avatar,bio:foundProfile.bio,location:foundProfile.location}
- const {dark,setDark,balance,points,pointsUsed,creatorPoints,userPosts,savedPosts,likedPostIds,followingUsernames,toggleFollow}=useApp()
+  : foundProfile?{name:foundProfile.name,user:foundProfile.username,avatar:foundProfile.avatar,bio:foundProfile.bio,location:foundProfile.location}:{name:publicIdentity?.author||username||'SocialStart creator',user:username||'',avatar:publicIdentity?.avatar||'',bio:'Creating and sharing on SocialStart.',location:publicIdentity?.location||''}
  const [tab,setTab]=useState('Posts'),[connectionModal,setConnectionModal]=useState<'Followers'|'Following'|null>(null)
  const followerProfiles=own?[]:profiles.filter(item=>item.username!==profile.user).slice(0,3)
  const followingProfiles=own?profiles.filter(item=>followingUsernames.includes(item.username)):profiles.filter(item=>item.username!==profile.user).slice(2,5)
@@ -31,7 +33,7 @@ export function ProfilePage(){
   {livePost&&<section className="profile-live"><p className="eyebrow">STREAMING LIVE NOW</p><PostCard post={livePost}/></section>}
   {own&&<div className="theme-line"><span><Moon/> Appearance</span><button className={dark?'switch on':'switch'} onClick={()=>setDark(!dark)}><i/></button></div>}
   <div className="profile-tabs"><button className={tab==='Posts'?'active':''} onClick={()=>setTab('Posts')}><Grid3X3/> Posts</button>{own&&<button className={tab==='Saved'?'active':''} onClick={()=>setTab('Saved')}><Bookmark/> Saved</button>}</div>
-  {own?(visiblePosts.length===0?<div className="profile-empty"><Grid3X3/><h3>{tab==='Posts'?'No posts yet':'Nothing saved yet'}</h3><p>{tab==='Posts'?'When you share your first post, it will appear here.':'Posts you save will appear here.'}</p>{tab==='Posts'&&<Link to="/create" className="primary-btn">Create your first post</Link>}</div>:<div className="profile-post-feed">{visiblePosts.map(p=><PostCard post={p} ownerView={tab==='Posts'} key={p.id}/>)}</div>):<div className="profile-post-feed">{posts.filter(p=>p.username===profile.user&&p.mediaType!=='live').map(p=><PostCard post={p} key={p.id}/>)}</div>}
+  {own?(visiblePosts.length===0?<div className="profile-empty"><Grid3X3/><h3>{tab==='Posts'?'No posts yet':'Nothing saved yet'}</h3><p>{tab==='Posts'?'When you share your first post, it will appear here.':'Posts you save will appear here.'}</p>{tab==='Posts'&&<Link to="/create" className="primary-btn">Create your first post</Link>}</div>:<div className="profile-post-feed">{visiblePosts.map(p=><PostCard post={p} ownerView={tab==='Posts'} key={p.id}/>)}</div>):<div className="profile-post-feed">{[...publicUserPosts,...posts.filter(p=>p.username===profile.user&&p.mediaType!=='live')].map(p=><PostCard post={p} key={p.id}/>)}</div>}
   {connectionModal&&<div className="connections-modal"><div><button className="modal-close" onClick={()=>setConnectionModal(null)}><X/></button><h2>{connectionModal}</h2>{(connectionModal==='Followers'?followerProfiles:followingProfiles).length?(connectionModal==='Followers'?followerProfiles:followingProfiles).map(person=><Link to={`/profile/${person.username}`} onClick={()=>setConnectionModal(null)} key={person.username}><img src={person.avatar}/><div><b>{person.name}</b><span>@{person.username}</span></div></Link>):<p className="empty-connections">No one here yet.</p>}</div></div>}
  </div>
 }

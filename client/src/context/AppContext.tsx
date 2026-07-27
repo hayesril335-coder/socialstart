@@ -81,7 +81,10 @@ export function AppProvider({children}:{children:ReactNode}) {
   const toggleSavedPost=(post:Post)=>setSavedPosts(current=>current.some(x=>x.id===post.id)?current.filter(x=>x.id!==post.id):[post,...current])
   const togglePostLike=(id:string)=>setLikedPostIds(current=>current.includes(id)?current.filter(x=>x!==id):[...current,id])
   const toggleFollow=(username:string)=>setFollowingUsernames(current=>current.includes(username)?current.filter(x=>x!==username):[...current,username])
-  const viewPost=(id:string)=>setUserPosts(current=>current.map(post=>post.id===id?{...post,views:String(Number(post.views)+1)}:post))
+  const viewPost=(id:string)=>{
+   setUserPosts(current=>current.map(post=>post.id===id?{...post,views:String(Number(post.views)+1)}:post))
+   setPublicPosts(current=>current.map(post=>post.id===id?{...post,views:String(Number(post.views)+1)}:post))
+  }
   const recordShare=()=>setShareCount(current=>current+1)
   const donatePoints=(username:string,amount:number)=>{if(!Number.isInteger(amount)||amount<1||amount>points)return false;setPoints(current=>current-amount);setPointsUsed(current=>current+amount);setCreatorPoints(current=>({...current,[username]:(current[username]||0)+amount}));return true}
   const setPostPrice=(id:string,price:number)=>setLockedPosts(current=>({...current,[id]:price}))
