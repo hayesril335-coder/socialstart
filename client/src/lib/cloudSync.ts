@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore'
+import { collection, documentId, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 import type { User } from 'firebase/auth'
 import { db } from './firebase'
 
@@ -13,6 +13,7 @@ let cloudUser: User | null = null
 let ready = false
 let saveTimer: number | undefined
 let presenceTimer: number | undefined
+const sharedFingerprints = new Map<string, string>()
 
 const isSyncableKey = (key: string) =>
   key.startsWith('socialstart-') &&
@@ -97,6 +98,13 @@ const readJson = <T,>(key: string, fallback: T): T => {
   try { return JSON.parse(localStorage.getItem(key) || '') as T } catch { return fallback }
 }
 
+const writeWhenChanged = async (path: string, payload: Record<string, unknown>) => {
+  const fingerprint = JSON.stringify(payload)
+  if (sharedFingerprints.get(path) === fingerprint) return
+  await setDoc(doc(db, path), { ...payload, updatedAt: serverTimestamp() }, { merge: true })
+  sharedFingerprints.set(path, fingerprint)
+}
+
 const syncSharedData = async (user: User) => {
   const profile = readJson<Record<string, string>>('socialstart-settings-profile', {})
   const ownPosts = readJson<Array<Record<string, unknown>>>('socialstart-user-posts', [])
@@ -112,27 +120,25 @@ const syncSharedData = async (user: User) => {
     socialPoints: readJson<number>('socialstart-points', 0),
     pointsUsed: readJson<number>('socialstart-points-used', 0),
   }
-  await setDoc(doc(db, 'publicProfiles', user.uid), {
+  await writeWhenChanged(`publicProfiles/${user.uid}`, {
     ...profile,
     uid: user.uid,
     email: user.email || '',
-    lastActiveAt: Date.now(),
     stats,
-    updatedAt: serverTimestamp(),
-  }, { merge: true })
+  })
 
   const storeKey = `socialstart-account-store-${user.uid}`
   const store = readJson<Record<string, unknown>>(storeKey, {})
   if (Object.keys(store).length) {
-    await setDoc(doc(db, 'stores', user.uid), { ...store, ownerId: user.uid, updatedAt: serverTimestamp() }, { merge: true })
+    await writeWhenChanged(`stores/${user.uid}`, { ...store, ownerId: user.uid })
   }
 
   await Promise.all(ownPosts.map(async post => {
-    const payload = { ...post, ownerAccountId: user.uid, ownerId: user.uid, updatedAt: serverTimestamp() }
+    const payload = { ...post, ownerAccountId: user.uid, ownerId: user.uid }
     // Firestore has a 1 MiB per-document limit. Normal photos fit; very large
     // camera videos remain local until Firebase Storage is enabled.
     if (JSON.stringify(payload).length < 850_000 && typeof post.id === 'string') {
-      await setDoc(doc(db, 'posts', post.id), payload, { merge: true })
+      await writeWhenChanged(`posts/${post.id}`, payload)
     }
   }))
 
@@ -142,17 +148,16 @@ const syncSharedData = async (user: User) => {
     if (!key?.startsWith('socialstart-comments-')) continue
     const postId = key.slice('socialstart-comments-'.length)
     const comments = readJson<unknown[]>(key, [])
-    commentWrites.push(setDoc(doc(db, 'comments', postId), { comments, updatedAt: serverTimestamp() }, { merge: true }))
+    commentWrites.push(writeWhenChanged(`comments/${postId}`, { comments }))
   }
   await Promise.all(commentWrites)
 }
 
 const loadSharedData = async () => {
-  const [postResults, storeResults, profileResults, commentResults] = await Promise.all([
-    getDocs(collection(db, 'posts')),
-    getDocs(collection(db, 'stores')),
-    getDocs(collection(db, 'publicProfiles')),
-    getDocs(collection(db, 'comments')),
+  const [postResults, storeResults, profileResults] = await Promise.all([
+    getDocs(query(collection(db, 'posts'), limit(60))),
+    getDocs(query(collection(db, 'stores'), limit(100))),
+    getDocs(query(collection(db, 'publicProfiles'), limit(100))),
   ])
   const localPosts = readJson<Array<Record<string, unknown>>>('socialstart-public-posts', [])
   const postsById = new Map(localPosts.map(post => [String(post.id), post]))
@@ -160,7 +165,22 @@ const loadSharedData = async () => {
   localStorage.setItem('socialstart-public-posts', JSON.stringify([...postsById.values()]))
   storeResults.forEach(result => localStorage.setItem(`socialstart-account-store-${result.id}`, JSON.stringify(result.data())))
   profileResults.forEach(result => localStorage.setItem(`socialstart-public-profile-${result.id}`, JSON.stringify(result.data())))
-  commentResults.forEach(result => localStorage.setItem(`socialstart-comments-${result.id}`, JSON.stringify(result.data().comments || [])))
+  const postIds = postResults.docs.map(result => result.id)
+  for (let offset = 0; offset < postIds.length; offset += 30) {
+    const ids = postIds.slice(offset, offset + 30)
+    if (!ids.length) continue
+    const results = await getDocs(query(collection(db, 'comments'), where(documentId(), 'in', ids)))
+    results.forEach(result => localStorage.setItem(`socialstart-comments-${result.id}`, JSON.stringify(result.data().comments || [])))
+  }
+}
+
+const updatePresence = async () => {
+  if (!cloudUser) return
+  await setDoc(doc(db, 'publicProfiles', cloudUser.uid), {
+    uid: cloudUser.uid,
+    lastActiveAt: Date.now(),
+    presenceUpdatedAt: serverTimestamp(),
+  }, { merge: true })
 }
 
 export async function prepareCloudAccount(user: User, profile?: Record<string, string>) {
@@ -198,7 +218,8 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
   await loadSharedData()
   ready = true
   window.clearInterval(presenceTimer)
-  presenceTimer = window.setInterval(scheduleCloudSave, 60_000)
+  await updatePresence()
+  presenceTimer = window.setInterval(() => void updatePresence(), 300_000)
 }
 
 export function scheduleCloudSave() {
@@ -220,4 +241,5 @@ export function stopCloudSync() {
   cloudUser = null
   window.clearTimeout(saveTimer)
   window.clearInterval(presenceTimer)
+  sharedFingerprints.clear()
 }
