@@ -12,9 +12,17 @@ const findAccountStore=(username?:string)=>{
  const direct=readAccountStores().find(store=>store.username===username)
  if(direct)return direct
  try{
+  let accountId=username
+  for(let index=0;index<localStorage.length;index++){
+   const key=localStorage.key(index)
+   if(!key?.startsWith('socialstart-public-profile-'))continue
+   const publicProfile=JSON.parse(localStorage.getItem(key)||'{}') as {uid?:string;username?:string}
+   if(publicProfile.uid===username||publicProfile.username===username){accountId=publicProfile.uid||key.slice('socialstart-public-profile-'.length);const cloudStore=JSON.parse(localStorage.getItem(`socialstart-account-store-${accountId}`)||'null') as AccountStore|null;return cloudStore||{username:publicProfile.username||username}}
+  }
+  if(accountId){const cloudStore=JSON.parse(localStorage.getItem(`socialstart-account-store-${accountId}`)||'null') as AccountStore|null;if(cloudStore)return cloudStore}
   const publicPosts=JSON.parse(localStorage.getItem('socialstart-public-posts')||'[]') as {username:string;ownerAccountId?:string}[]
-  const accountId=publicPosts.find(post=>post.username===username)?.ownerAccountId
-  if(accountId){const store=JSON.parse(localStorage.getItem(`socialstart-account-store-${accountId}`)||'null') as AccountStore|null;if(store)return {...store,username}}
+  const postAccountId=publicPosts.find(post=>post.username===username||post.ownerAccountId===username)?.ownerAccountId
+  if(postAccountId){const store=JSON.parse(localStorage.getItem(`socialstart-account-store-${postAccountId}`)||'null') as AccountStore|null;if(store)return store}
  }catch{/* Fall through to a fake store. */}
  return undefined
 }
