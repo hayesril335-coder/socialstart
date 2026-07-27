@@ -25,7 +25,7 @@
 .purchase-modal label input{display:block;width:100%;margin-top:7px;padding:13px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)}
 .modal-close{position:absolute;right:14px;top:14px;border:0;background:none}
 .modal-close svg{width:20px}
-.profile-post-feed{max-width:1040px;margin:20px auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.profile-post-feed{max-width:1040px;margin:20px auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .post-actions>div{display:contents!important}
 .post-actions>button,.post-actions .post-action-link,.post-actions>div>button{flex:1;display:grid;place-items:center}
 .story-viewer{position:fixed;inset:0;z-index:200;background:#080707;color:white;display:grid;place-items:center;overflow:hidden}
@@ -38,7 +38,7 @@
 .story-progress{position:absolute;z-index:3;top:12px;left:12px;right:12px;height:3px;background:rgba(255,255,255,.3)}
 .story-progress i{display:block;height:100%;background:white;animation:story-progress 8s linear forwards}
 @keyframes story-progress{from{width:0}to{width:100%}}
-@media(max-width:760px){.profile-post-feed{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.profile-post-feed .post-owner,.profile-post-feed .post-actions,.profile-post-feed .post-copy{padding-inline:7px}.profile-post-feed .post-owner>div span,.profile-post-feed .post-owner>.plain{display:none}.profile-post-feed .follow{padding:6px;font-size:9px}}
+@media(max-width:760px){.profile-post-feed{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.profile-post-feed .post-owner,.profile-post-feed .post-actions,.profile-post-feed .post-copy{padding-inline:7px}.profile-post-feed .post-owner>div span,.profile-post-feed .post-owner>.plain{display:none}.profile-post-feed .follow{padding:6px;font-size:9px}}
 .stat-strip>button{min-width:90px;padding:0 25px;text-align:center;border:0;border-right:1px solid var(--line);background:none}
 .stat-strip>button b{display:block;font:600 23px 'Playfair Display'}
 .stat-strip>button span{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
@@ -59,3 +59,7 @@
 .stat-strip>div,.stat-strip>button{flex:1;min-width:92px;min-height:58px;padding:0 12px;margin:0;display:grid;grid-template-rows:30px 18px;align-content:center;justify-items:center}
 .stat-strip>div b,.stat-strip>button b{line-height:30px;margin:0}
 .stat-strip>div span,.stat-strip>button span{line-height:18px;white-space:nowrap}
+.stat-strip>div,.stat-strip>button{box-sizing:border-box;flex:1 0 110px!important;width:110px!important;padding:0!important}
+.stat-strip>div b,.stat-strip>div span,.stat-strip>button b,.stat-strip>button span{width:100%;text-align:center}
+.feed-tabs{flex-wrap:nowrap!important}
+@media(max-width:520px){.feed-tabs{gap:4px}.feed-tabs button{min-width:0;padding:8px 9px;font-size:10px}.feed-tabs button svg{display:none}}
