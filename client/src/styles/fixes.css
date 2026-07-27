@@ -105,3 +105,5 @@
 .promo-post-copy span{color:var(--muted);font-size:10px}
 .promo-manage-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
 .promo-card>video{width:100%;aspect-ratio:16/10;object-fit:cover;filter:brightness(.8)}
+.public-store-banner{min-height:340px;background-size:cover!important;background-position:center!important;color:white}
+.public-store-banner .eyebrow,.public-store-banner>p:not(.eyebrow){color:white!important}
