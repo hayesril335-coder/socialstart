@@ -37,6 +37,24 @@ const collectState = () => {
   return state
 }
 
+const valueScore = (value: string) => {
+  try {
+    const parsed = JSON.parse(value)
+    if (typeof parsed === 'number') return Math.max(1, parsed)
+    if (Array.isArray(parsed)) return parsed.length * 10_000 + value.length
+    if (parsed && typeof parsed === 'object') return Object.keys(parsed).length * 10_000 + value.length
+  } catch { /* Plain strings are scored by their useful content. */ }
+  return value.length
+}
+
+const mergeState = (cloud: Record<string, string>, local: Record<string, string>) => {
+  const merged = { ...cloud }
+  Object.entries(local).forEach(([key, value]) => {
+    if (!(key in merged) || valueScore(value) > valueScore(merged[key])) merged[key] = value
+  })
+  return merged
+}
+
 const applyState = (state: Record<string, string>) => {
   const currentKeys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
   currentKeys.forEach(key => {
@@ -49,11 +67,25 @@ const applyState = (state: Record<string, string>) => {
 
 export async function prepareCloudAccount(user: User, profile?: Record<string, string>) {
   cloudUser = user
+  const previousAccountId = localStorage.getItem('socialstart-active-account')
+  if (previousAccountId && previousAccountId !== user.uid) {
+    for (const section of ['store', 'promo']) {
+      const oldKey = `socialstart-account-${section}-${previousAccountId}`
+      const newKey = `socialstart-account-${section}-${user.uid}`
+      const oldValue = localStorage.getItem(oldKey)
+      if (oldValue && !localStorage.getItem(newKey)) localStorage.setItem(newKey, oldValue)
+    }
+  }
   const reference = doc(db, 'users', user.uid)
   const snapshot = await getDoc(reference)
   if (snapshot.exists()) {
-    const state = snapshot.data().state
-    if (state && typeof state === 'object') applyState(state as Record<string, string>)
+    const cloudState = snapshot.data().state
+    const merged = mergeState(
+      cloudState && typeof cloudState === 'object' ? cloudState as Record<string, string> : {},
+      collectState(),
+    )
+    applyState(merged)
+    await setDoc(reference, { state: merged, email: user.email || '', updatedAt: serverTimestamp() }, { merge: true })
   } else {
     if (profile) {
       let existing: Record<string, string> = {}
