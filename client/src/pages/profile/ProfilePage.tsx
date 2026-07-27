@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Bookmark, Crown, Grid3X3, MapPin, Moon, Store, X } from 'lucide-react'
+import { Bookmark, Crown, Grid3X3, Hash, MapPin, Store, X } from 'lucide-react'
 import { posts, profiles } from '../../utils/mockData'
 import { useApp } from '../../context/AppContext'
 import { PostCard } from '../../components/PostCard'
@@ -8,7 +8,7 @@ import { activeMembershipFor, membershipPlanFor, purchaseMembership } from '../.
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
- const {dark,setDark,balance,points,pointsUsed,creatorPoints,postMetrics,userPosts,publicPosts,savedPosts,followingUsernames,followingByAccount,toggleFollow}=useApp()
+ const {balance,points,pointsUsed,creatorPoints,postMetrics,userPosts,publicPosts,savedPosts,followingUsernames,followingByAccount,toggleFollow}=useApp()
  const readOwnProfile=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}')}catch{return {}}}
  const readCloudProfiles=()=>{const found:Record<string,unknown>[]=[];for(let index=0;index<localStorage.length;index++){const key=localStorage.key(index);if(!key?.startsWith('socialstart-public-profile-'))continue;try{found.push(JSON.parse(localStorage.getItem(key)||'{}'))}catch{/* Ignore a damaged cached public profile. */}}return found}
  const [savedProfile,setSavedProfile]=useState<Record<string,string>>(readOwnProfile)
@@ -43,7 +43,7 @@ export function ProfilePage(){
   <section className="stat-strip"><button onClick={()=>setConnectionModal('Followers')}><b>{stats[0]}</b><span>Followers</span></button><button onClick={()=>setConnectionModal('Following')}><b>{stats[1]}</b><span>Following</span></button><div><b>{stats[2]}</b><span>Total likes</span></div><div><b>{stats[3]}</b><span>Views</span></div>{own&&<><div><b>{points+(creatorPoints[profile.user]||0)}</b><span>Social points</span></div><div><b>{pointsUsed}</b><span>Points used</span></div><div><b>${balance.toFixed(2)}</b><span>Balance</span></div></>}</section>
   {!own&&<div className="creator-point-total"><b>{creatorPoints[profile.user]||0}</b><span> Social Points received</span></div>}
   {livePost&&<section className="profile-live"><p className="eyebrow">STREAMING LIVE NOW</p><PostCard post={livePost}/></section>}
-  {own&&<div className="theme-line"><span><Moon/> Appearance</span><button className={dark?'switch on':'switch'} onClick={()=>setDark(!dark)}><i/></button></div>}
+  {own&&<div className="theme-line hashtag-actions"><button type="button"><Hash/> Hashtags</button><button type="button"><Hash/> Created hashtags</button></div>}
   <div className="profile-tabs"><button className={tab==='Posts'?'active':''} onClick={()=>setTab('Posts')}><Grid3X3/> Posts</button>{own&&<button className={tab==='Saved'?'active':''} onClick={()=>setTab('Saved')}><Bookmark/> Saved</button>}</div>
   {own?(visiblePosts.length===0?<div className="profile-empty"><Grid3X3/><h3>{tab==='Posts'?'No posts yet':'Nothing saved yet'}</h3><p>{tab==='Posts'?'When you share your first post, it will appear here.':'Posts you save will appear here.'}</p>{tab==='Posts'&&<Link to="/create" className="primary-btn">Create your first post</Link>}</div>:<div className="profile-post-feed">{visiblePosts.map(p=><PostCard post={p} ownerView={tab==='Posts'} key={p.id}/>)}</div>):<div className="profile-post-feed">{[...publicUserPosts,...posts.filter(p=>p.username===profile.user&&p.mediaType!=='live')].map(p=><PostCard post={p} key={p.id}/>)}</div>}
   {connectionModal&&<div className="connections-modal"><div><button className="modal-close" onClick={()=>setConnectionModal(null)}><X/></button><h2>{connectionModal}</h2>{(connectionModal==='Followers'?followerProfiles:followingProfiles).length?(connectionModal==='Followers'?followerProfiles:followingProfiles).map(person=><Link to={`/profile/${person.username}`} onClick={()=>setConnectionModal(null)} key={person.username}><img src={person.avatar}/><div><b>{person.name}</b><span>@{person.username}</span></div></Link>):<p className="empty-connections">No one here yet.</p>}</div></div>}

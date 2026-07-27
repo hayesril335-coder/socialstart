@@ -7,7 +7,7 @@ export type PostMetric = { likes:number; views:number }
 type AppState = {
   dark:boolean; setDark:(v:boolean)=>void; unread:number; unreadByConversation:Record<string,number>; markConversationRead:(id:string)=>void; points:number; pointsUsed:number; earnPoint:()=>void; creatorPoints:Record<string,number>; donatePoints:(username:string,amount:number)=>boolean; balance:number; addFunds:(amount:number)=>void; spendBalance:(amount:number)=>boolean; postMetrics:Record<string,PostMetric>;
   cart:CartItem[]; addToCart:(item:Omit<CartItem,'quantity'>,quantity?:number)=>void; updateCartQuantity:(id:string,quantity:number)=>void; clearCart:()=>void;
-  userPosts:Post[]; publicPosts:Post[]; addUserPost:(post:{title:string;image:string;mediaType?:'image'|'video'})=>void;
+  userPosts:Post[]; publicPosts:Post[]; addUserPost:(post:{title:string;image:string;mediaType?:'image'|'video';category?:string})=>void;
   savedPosts:Post[]; toggleSavedPost:(post:Post)=>void; isPostSaved:(id:string)=>boolean;
   likedPostIds:string[]; togglePostLike:(id:string)=>void; followingUsernames:string[]; followingByAccount:Record<string,string[]>; toggleFollow:(username:string)=>void;
   viewPost:(id:string)=>void; shareCount:number; recordShare:()=>void;
@@ -85,10 +85,10 @@ export function AppProvider({children}:{children:ReactNode}) {
 
   const addToCart=(item:Omit<CartItem,'quantity'>,quantity=1)=>setCart(current=>current.some(x=>x.id===item.id)?current.map(x=>x.id===item.id?{...x,quantity:Math.min(99,x.quantity+quantity)}:x):[...current,{...item,quantity}])
   const updateCartQuantity=(id:string,quantity:number)=>setCart(current=>quantity<=0?current.filter(x=>x.id!==id):current.map(x=>x.id===id?{...x,quantity:Math.min(99,quantity)}:x))
-  const addUserPost=({title,image,mediaType='image'}:{title:string;image:string;mediaType?:'image'|'video'})=>setUserPosts(current=>{
+  const addUserPost=({title,image,mediaType='image',category}:{title:string;image:string;mediaType?:'image'|'video';category?:string})=>setUserPosts(current=>{
    const profile=read<Record<string,string>>('socialstart-settings-profile',{})
    return [{
-    id:`mine-${Date.now()}`,author:profile.name||'Alex Morgan',username:profile.username||'alexmorgan',avatar:profile.avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',image,title,location:profile.location||'Los Angeles, CA',likes:0,views:'0',followers:'0',following:false,mediaType,ownerAccountId:localStorage.getItem('socialstart-active-account')||undefined
+    id:`mine-${Date.now()}`,author:profile.name||'Alex Morgan',username:profile.username||'alexmorgan',avatar:profile.avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',image,title,category:category||undefined,location:profile.location||'Los Angeles, CA',likes:0,views:'0',followers:'0',following:false,mediaType,ownerAccountId:localStorage.getItem('socialstart-active-account')||undefined
    } as Post,...current]
   })
   const toggleSavedPost=(post:Post)=>setSavedPosts(current=>current.some(x=>x.id===post.id)?current.filter(x=>x.id!==post.id):[post,...current])
