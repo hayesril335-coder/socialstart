@@ -8,6 +8,14 @@ export const profiles=[
  {name:'Nia Chen',username:'niainmotion',avatar:'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop',bio:'Movement, wellness, and mornings outside.',location:'Santa Monica, CA'},
  {name:'Luca Hayes',username:'lucafilm',avatar:'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop',bio:'Filmmaker finding small stories in big cities.',location:'Downtown LA, CA'}
 ]
+export const stories=[
+ {username:'sofiabell',image:'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200&auto=format&fit=crop',caption:'Last light in the neighborhood.'},
+ {username:'masonmakes',image:'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1200&auto=format&fit=crop',caption:'Sketching the next piece.'},
+ {username:'amaragoes',image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&auto=format&fit=crop',caption:'The road was worth taking.'},
+ {username:'theocooks',image:'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=1200&auto=format&fit=crop',caption:'Tonight’s ingredients.'},
+ {username:'niainmotion',image:'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1200&auto=format&fit=crop',caption:'A little movement every day.'},
+ {username:'lucafilm',image:'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200&auto=format&fit=crop',caption:'One frame from today.'}
+]
 const p=(id:string,person:number,image:string,title:string,location:string,likes:number,views:string,lat:number,lng:number,mediaType:'image'|'video'|'live'='image'):Post=>({id,author:profiles[person].name,username:profiles[person].username,avatar:profiles[person].avatar,image,title,location,likes,views,followers:['42.1K','18.4K','67.3K','12.8K','31.5K','23.9K'][person],following:false,approximateLatitude:lat,approximateLongitude:lng,mediaType})
 export const posts:Post[]=[
  p('1',0,'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=1200&auto=format&fit=crop','Golden hour found me first.','Silver Lake, CA',2847,'18.2K',34.086,-118.270),
