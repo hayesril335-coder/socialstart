@@ -49,9 +49,12 @@ export function AppProvider({children}:{children:ReactNode}) {
 
   const addToCart=(item:Omit<CartItem,'quantity'>,quantity=1)=>setCart(current=>current.some(x=>x.id===item.id)?current.map(x=>x.id===item.id?{...x,quantity:Math.min(99,x.quantity+quantity)}:x):[...current,{...item,quantity}])
   const updateCartQuantity=(id:string,quantity:number)=>setCart(current=>quantity<=0?current.filter(x=>x.id!==id):current.map(x=>x.id===id?{...x,quantity:Math.min(99,quantity)}:x))
-  const addUserPost=({title,image,mediaType='image'}:{title:string;image:string;mediaType?:'image'|'video'})=>setUserPosts(current=>[{
-   id:`mine-${Date.now()}`,author:'Alex Morgan',username:'alexmorgan',avatar:'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',image,title,location:'Los Angeles, CA',likes:0,views:'0',followers:'0',following:false,mediaType
-  } as Post,...current])
+  const addUserPost=({title,image,mediaType='image'}:{title:string;image:string;mediaType?:'image'|'video'})=>setUserPosts(current=>{
+   const profile=read<Record<string,string>>('socialstart-settings-profile',{})
+   return [{
+    id:`mine-${Date.now()}`,author:profile.name||'Alex Morgan',username:profile.username||'alexmorgan',avatar:profile.avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',image,title,location:profile.location||'Los Angeles, CA',likes:0,views:'0',followers:'0',following:false,mediaType
+   } as Post,...current]
+  })
   const toggleSavedPost=(post:Post)=>setSavedPosts(current=>current.some(x=>x.id===post.id)?current.filter(x=>x.id!==post.id):[post,...current])
   const togglePostLike=(id:string)=>setLikedPostIds(current=>current.includes(id)?current.filter(x=>x!==id):[...current,id])
   const toggleFollow=(username:string)=>setFollowingUsernames(current=>current.includes(username)?current.filter(x=>x!==username):[...current,username])
