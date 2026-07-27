@@ -7,7 +7,7 @@ import type { Post } from '../types'
 export function PostCard({post}:{post:Post}){
  const {isPostSaved,toggleSavedPost,likedPostIds,togglePostLike,followingUsernames,toggleFollow,recordShare}=useApp()
  const [shared,setShared]=useState(false)
- const liked=likedPostIds.includes(post.id),saved=isPostSaved(post.id),following=followingUsernames.includes(post.username)||post.following
+ const liked=likedPostIds.includes(post.id),saved=isPostSaved(post.id),following=followingUsernames.includes(post.username)
  const share=async()=>{const url=`${window.location.origin}/post/${post.id}`;try{if(navigator.share)await navigator.share({title:post.title,text:`See ${post.author}'s post on SocialStart`,url});else await navigator.clipboard.writeText(url);recordShare();setShared(true);window.setTimeout(()=>setShared(false),2200)}catch{/* The user cancelled the native share sheet. */}}
  return <article className="post-card">
   <div className="post-owner"><Link to={`/profile/${post.username}`}><img src={post.avatar}/></Link><div><Link to={`/profile/${post.username}`}><b>{post.author}</b></Link><span>{post.location} · {post.followers} followers</span></div>{post.username!=='alexmorgan'&&<button className={following?'follow following':'follow'} onClick={()=>toggleFollow(post.username)}>{following?'Following':'Follow'}</button>}<button className="plain"><MoreHorizontal/></button></div>
