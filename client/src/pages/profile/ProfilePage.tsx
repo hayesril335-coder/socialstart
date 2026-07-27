@@ -9,13 +9,18 @@ export function ProfilePage(){
  const {username}=useParams(), own=!username
  const {dark,setDark,balance,points,pointsUsed,creatorPoints,postMetrics,userPosts,publicPosts,savedPosts,followingUsernames,followingByAccount,toggleFollow}=useApp()
  const readOwnProfile=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}')}catch{return {}}}
+ const readCloudProfiles=()=>{const found:Record<string,unknown>[]=[];for(let index=0;index<localStorage.length;index++){const key=localStorage.key(index);if(!key?.startsWith('socialstart-public-profile-'))continue;try{found.push(JSON.parse(localStorage.getItem(key)||'{}'))}catch{/* Ignore a damaged cached public profile. */}}return found}
  const [savedProfile,setSavedProfile]=useState<Record<string,string>>(readOwnProfile)
  useEffect(()=>{const update=()=>setSavedProfile(readOwnProfile());window.addEventListener('socialstart-profile-updated',update);return()=>window.removeEventListener('socialstart-profile-updated',update)},[])
  const foundProfile=profiles.find(item=>item.username===username)
- const publicUserPosts=publicPosts.filter(item=>item.username===username)
+ const cloudProfiles=readCloudProfiles()
+ const usernameIdentity=publicPosts.find(item=>item.username===username)
+ const cloudProfile=cloudProfiles.find(item=>item.username===username||item.uid===usernameIdentity?.ownerAccountId) as {uid?:string;name?:string;username?:string;avatar?:string;bio?:string;location?:string;stats?:{followers?:number;following?:number;likes?:number;views?:number}}|undefined
+ const publicUserPosts=publicPosts.filter(item=>item.username===username||(cloudProfile?.uid&&item.ownerAccountId===cloudProfile.uid))
  const publicIdentity=publicUserPosts[0]
  const profile=own
   ? {name:savedProfile.name||'Alex Morgan',user:savedProfile.username||'alexmorgan',avatar:savedProfile.avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',bio:savedProfile.bio||'Creative director, weekend wanderer, and believer in making the internet feel a little more human.',location:savedProfile.location||'Los Angeles, CA'}
+  : cloudProfile?{name:cloudProfile.name||publicIdentity?.author||username||'SocialStart creator',user:cloudProfile.username||username||'',avatar:cloudProfile.avatar||publicIdentity?.avatar||'',bio:cloudProfile.bio||'Creating and sharing on SocialStart.',location:cloudProfile.location||publicIdentity?.location||''}
   : foundProfile?{name:foundProfile.name,user:foundProfile.username,avatar:foundProfile.avatar,bio:foundProfile.bio,location:foundProfile.location}:{name:publicIdentity?.author||username||'SocialStart creator',user:username||'',avatar:publicIdentity?.avatar||'',bio:'Creating and sharing on SocialStart.',location:publicIdentity?.location||''}
  const [tab,setTab]=useState('Posts'),[connectionModal,setConnectionModal]=useState<'Followers'|'Following'|null>(null)
  const followerProfiles=own?[]:profiles.filter(item=>item.username!==profile.user).slice(0,3)
@@ -23,10 +28,10 @@ export function ProfilePage(){
  const trackedPosts=own?userPosts:publicUserPosts
  const totalLikes=trackedPosts.reduce((total,post)=>total+post.likes+(postMetrics[post.id]?.likes||0),0)
  const totalViews=trackedPosts.reduce((total,post)=>total+(Number(post.views)||0)+(postMetrics[post.id]?.views||0),0)
- const targetAccountId=own?localStorage.getItem('socialstart-active-account'):publicIdentity?.ownerAccountId
+ const targetAccountId=own?localStorage.getItem('socialstart-active-account'):cloudProfile?.uid||publicIdentity?.ownerAccountId
  const followerCount=Object.values(followingByAccount).filter(following=>following.includes(profile.user)).length
  const followingCount=targetAccountId?(followingByAccount[targetAccountId]?.length||0):(own?followingUsernames.length:followingProfiles.length)
- const stats=own||publicIdentity?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:[String(followerProfiles.length),String(followingProfiles.length),'18.6K','94.2K']
+ const stats=own?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:cloudProfile?.stats?[String(cloudProfile.stats.followers||0),String(cloudProfile.stats.following||0),String(cloudProfile.stats.likes||0),String(cloudProfile.stats.views||0)]:publicIdentity?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:[String(followerProfiles.length),String(followingProfiles.length),'18.6K','94.2K']
  const visiblePosts=tab==='Saved'?savedPosts:userPosts
  const livePost=!own?posts.find(post=>post.username===profile.user&&post.mediaType==='live'):undefined
 

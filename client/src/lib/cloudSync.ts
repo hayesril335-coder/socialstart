@@ -98,10 +98,24 @@ const readJson = <T,>(key: string, fallback: T): T => {
 
 const syncSharedData = async (user: User) => {
   const profile = readJson<Record<string, string>>('socialstart-settings-profile', {})
+  const ownPosts = readJson<Array<Record<string, unknown>>>('socialstart-user-posts', [])
+  const metrics = readJson<Record<string, { likes?: number; views?: number }>>('socialstart-post-metrics', {})
+  const following = readJson<string[]>('socialstart-following', [])
+  const followGraph = readJson<Record<string, string[]>>('socialstart-global-follow-graph', {})
+  const username = profile.username || ''
+  const stats = {
+    followers: Object.values(followGraph).filter(list => list.includes(username)).length,
+    following: following.length,
+    likes: ownPosts.reduce((total, post) => total + Number(post.likes || 0) + Number(metrics[String(post.id)]?.likes || 0), 0),
+    views: ownPosts.reduce((total, post) => total + Number(post.views || 0) + Number(metrics[String(post.id)]?.views || 0), 0),
+    socialPoints: readJson<number>('socialstart-points', 0),
+    pointsUsed: readJson<number>('socialstart-points-used', 0),
+  }
   await setDoc(doc(db, 'publicProfiles', user.uid), {
     ...profile,
     uid: user.uid,
     email: user.email || '',
+    stats,
     updatedAt: serverTimestamp(),
   }, { merge: true })
 
@@ -111,7 +125,6 @@ const syncSharedData = async (user: User) => {
     await setDoc(doc(db, 'stores', user.uid), { ...store, ownerId: user.uid, updatedAt: serverTimestamp() }, { merge: true })
   }
 
-  const ownPosts = readJson<Array<Record<string, unknown>>>('socialstart-user-posts', [])
   await Promise.all(ownPosts.map(async post => {
     const payload = { ...post, ownerAccountId: user.uid, ownerId: user.uid, updatedAt: serverTimestamp() }
     // Firestore has a 1 MiB per-document limit. Normal photos fit; very large
