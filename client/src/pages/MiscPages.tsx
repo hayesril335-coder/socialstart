@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, Maximize, Radio, Square, X } from 'lucide-react'
-export function NotificationsPage(){return <div className="form-page"><p className="eyebrow">STAY IN THE LOOP</p><h1>Notifications</h1><div className="profile-empty"><Bell/><h3>No notifications yet</h3><p>Your likes, follows, messages, and orders will appear here.</p></div></div>}
+import { Bell, Maximize, MessageCircle, Radio, Square, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { useApp } from '../context/AppContext'
+const notificationNames:Record<string,string>={welcome:'SocialStart Welcome Bot','1':'Sofia Bell','2':'Mason Reed','3':'Amara Jones'}
+export function NotificationsPage(){
+ const {unreadByConversation}=useApp(),items=Object.entries(unreadByConversation).filter(([,count])=>count>0)
+ return <div className="form-page"><p className="eyebrow">STAY IN THE LOOP</p><h1>Notifications</h1>{items.length?<div className="notification-list">{items.map(([id,count])=><Link className="notification-row" to={`/inbox/${id}`} key={id}><i><MessageCircle/></i><div><b>{count} unread {count===1?'message':'messages'}</b><span>From {notificationNames[id]||'a SocialStart member'} · Tap to read</span></div><strong>{count}</strong></Link>)}</div>:<div className="profile-empty"><Bell/><h3>No notifications yet</h3><p>Your likes, follows, messages, and orders will appear here.</p></div>}</div>
+}
 export function LivePage(){
  const video=useRef<HTMLVideoElement>(null),stream=useRef<MediaStream|null>(null)
  const [live,setLive]=useState(false),[expanded,setExpanded]=useState(false),[starting,setStarting]=useState(false),[error,setError]=useState(''),[title,setTitle]=useState(''),[submittedTitle,setSubmittedTitle]=useState(''),[views,setViews]=useState(0)

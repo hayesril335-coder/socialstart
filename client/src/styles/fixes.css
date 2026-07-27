@@ -74,3 +74,11 @@
 .auth-error{color:#c02c45!important;background:#fff0f3;border:1px solid #f2b7c5;border-radius:10px;padding:11px 13px;font-size:12px}
 .google-signin{min-height:44px;display:flex;justify-content:center;overflow:hidden}
 .google-signin>div{max-width:100%}
+.profile-hero{gap:55px}
+.profile-main>.eyebrow{margin:10px 0 4px}
+.notification i{background:#e73578!important}
+.notification-list{border-top:1px solid var(--line)}
+.notification-list .notification-row{text-decoration:none}
+.notification-row>div{flex:1}
+.notification-row>strong{min-width:22px;height:22px;padding:0 6px;border-radius:20px;background:#e73578;color:white;display:grid;place-items:center;font-size:11px}
+@media(max-width:760px){.profile-main>.eyebrow{margin-top:22px;margin-bottom:4px}}
