@@ -11,13 +11,18 @@ import { auth } from './lib/firebase'
 import { prepareCloudAccount } from './lib/cloudSync'
 const queryClient=new QueryClient()
 const start=()=>ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={queryClient}><App/></QueryClientProvider></React.StrictMode>)
+const preventZoom=(event:WheelEvent)=>{if(event.ctrlKey)event.preventDefault()}
+const preventZoomKeys=(event:KeyboardEvent)=>{if((event.ctrlKey||event.metaKey)&&['+','-','=','0'].includes(event.key))event.preventDefault()}
+document.addEventListener('wheel',preventZoom,{passive:false})
+document.addEventListener('keydown',preventZoomKeys)
+document.addEventListener('gesturestart',event=>event.preventDefault())
 let started=false
 onAuthStateChanged(auth,async user=>{
  if(started)return
  started=true
  if(user){
   try{await prepareCloudAccount(user)}catch(error){console.error('SocialStart could not load cloud data',error)}
- }else{
+ }else if(localStorage.getItem('socialstart-moderator-session')!=='true'){
   localStorage.removeItem('socialstart-authenticated')
   localStorage.removeItem('socialstart-active-account')
  }

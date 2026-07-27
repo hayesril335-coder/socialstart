@@ -3,10 +3,12 @@ import { Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, updateProfile } from 'firebase/auth'
 import { auth } from '../../lib/firebase'
-import { prepareCloudAccount, scheduleCloudSave } from '../../lib/cloudSync'
+import { prepareCloudAccount } from '../../lib/cloudSync'
 
 const moderatorEmail='moderator@socialstart.app'
 const moderatorPassword='SocialStartMod2026!'
+const moderatorAccountId='socialstart-moderator'
+const moderatorResetKeys=['socialstart-user-posts','socialstart-saved-posts','socialstart-liked-posts','socialstart-viewed-posts','socialstart-following','socialstart-cart','socialstart-locked-posts','socialstart-purchased-posts','socialstart-post-metrics','socialstart-membership-plans','socialstart-membership-purchases','socialstart-points-used']
 
 const authMessage=(error:unknown)=>{
  const code=typeof error==='object'&&error&&'code' in error?String(error.code):''
@@ -55,19 +57,24 @@ export function AuthPage({signup=false}:{signup?:boolean}){
   setBusy(true)
   try{
    const normalizedEmail=email.trim().toLowerCase()
-   let result
    if(!signup&&normalizedEmail===moderatorEmail&&password===moderatorPassword){
-    try{result=await signInWithEmailAndPassword(auth,normalizedEmail,password)}
-    catch{result=await createUserWithEmailAndPassword(auth,normalizedEmail,password)}
-    await prepareCloudAccount(result.user,{name:'SocialStart Moderator',username:'socialstartmod',email:moderatorEmail,bio:'SocialStart community moderator.',location:'SocialStart'})
-    localStorage.setItem('socialstart-settings-profile',JSON.stringify({name:'SocialStart Moderator',username:'socialstartmod',email:moderatorEmail,bio:'SocialStart community moderator.',location:'SocialStart'}))
-    localStorage.setItem('socialstart-points','1000')
-    localStorage.setItem('socialstart-balance','1000')
-    scheduleCloudSave()
+    const snapshot=localStorage.getItem(`socialstart-account-data-${moderatorAccountId}`)
+    moderatorResetKeys.forEach(key=>localStorage.removeItem(key))
+    if(snapshot){
+     const state=JSON.parse(snapshot) as Record<string,string>
+     Object.entries(state).forEach(([key,value])=>localStorage.setItem(key,value))
+    }else{
+     localStorage.setItem('socialstart-settings-profile',JSON.stringify({name:'SocialStart Moderator',username:'socialstartmod',email:moderatorEmail,bio:'SocialStart community moderator.',location:'SocialStart'}))
+     localStorage.setItem('socialstart-points','1000')
+     localStorage.setItem('socialstart-balance','1000')
+    }
+    localStorage.setItem('socialstart-active-account',moderatorAccountId)
+    localStorage.setItem('socialstart-moderator-session','true')
+    localStorage.setItem('socialstart-authenticated','true')
     window.location.replace('/search')
     return
    }
-   result=signup?await createUserWithEmailAndPassword(auth,normalizedEmail,password):await signInWithEmailAndPassword(auth,normalizedEmail,password)
+   const result=signup?await createUserWithEmailAndPassword(auth,normalizedEmail,password):await signInWithEmailAndPassword(auth,normalizedEmail,password)
    const profile=signup?{name:name.trim(),username:username.trim().replace(/^@/,''),email:normalizedEmail}:undefined
    if(signup&&profile)await updateProfile(result.user,{displayName:profile.name})
    await finishSignIn(result.user,profile)
