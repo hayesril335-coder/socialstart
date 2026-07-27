@@ -71,3 +71,4 @@
 .comments>div>img{width:36px!important;height:36px!important;min-width:36px;aspect-ratio:1;object-fit:cover}
 .bottom-nav i,.conversation-list aside>i{background:#e73578!important}
 .conversation-list aside>i{min-width:18px;width:auto!important;padding:0 5px}
+.auth-error{color:#c02c45!important;background:#fff0f3;border:1px solid #f2b7c5;border-radius:10px;padding:11px 13px;font-size:12px}
