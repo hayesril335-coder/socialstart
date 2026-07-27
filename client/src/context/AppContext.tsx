@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Post } from '../types'
 import { scheduleCloudSave } from '../lib/cloudSync'
+import { registerPostHashtags } from '../lib/hashtags'
 
 export type CartItem = { id:string; title:string; price:number; image:string; quantity:number }
 export type PostMetric = { likes:number; views:number }
@@ -87,6 +88,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   const updateCartQuantity=(id:string,quantity:number)=>setCart(current=>quantity<=0?current.filter(x=>x.id!==id):current.map(x=>x.id===id?{...x,quantity:Math.min(99,quantity)}:x))
   const addUserPost=({title,image,mediaType='image',category}:{title:string;image:string;mediaType?:'image'|'video';category?:string})=>setUserPosts(current=>{
    const profile=read<Record<string,string>>('socialstart-settings-profile',{})
+   registerPostHashtags(title,profile.username||'alexmorgan')
    return [{
     id:`mine-${Date.now()}`,author:profile.name||'Alex Morgan',username:profile.username||'alexmorgan',avatar:profile.avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',image,title,category:category||undefined,location:profile.location||'Los Angeles, CA',likes:0,views:'0',followers:'0',following:false,mediaType,ownerAccountId:localStorage.getItem('socialstart-active-account')||undefined
    } as Post,...current]
