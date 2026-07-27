@@ -6,7 +6,13 @@ type GoogleClaims={aud:string;email:string;email_verified:boolean;exp:number;nam
 type GoogleCredentialResponse={credential:string}
 const GOOGLE_CLIENT_ID='1048776122497-o6egk5iaiohriajjdntm8bk3ttkfpmtk.apps.googleusercontent.com'
 const hashPassword=async(password:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(password)))).map(byte=>byte.toString(16).padStart(2,'0')).join('')
-const readGoogleClaims=(credential:string):GoogleClaims=>JSON.parse(decodeURIComponent(atob(credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')).split('').map(character=>`%${character.charCodeAt(0).toString(16).padStart(2,'0')}`).join('')))
+const readGoogleClaims=(credential:string):GoogleClaims=>{
+ const payload=credential.split('.')[1]
+ if(!payload)throw new Error('Missing Google credential payload')
+ const base64=payload.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(payload.length/4)*4,'=')
+ const bytes=Uint8Array.from(atob(base64),character=>character.charCodeAt(0))
+ return JSON.parse(new TextDecoder().decode(bytes))
+}
 const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account','socialstart-public-posts'])
 const isAccountDataKey=(key:string)=>key.startsWith('socialstart-')&&!globalKeys.has(key)&&!key.startsWith('socialstart-account-data-')
 const switchAccount=(accountId:string,profile:Record<string,string>)=>{
@@ -14,7 +20,7 @@ const switchAccount=(accountId:string,profile:Record<string,string>)=>{
  if(previous&&previous!==accountId){
   const snapshot:Record<string,string>={}
   for(let index=0;index<localStorage.length;index++){const key=localStorage.key(index);if(key&&isAccountDataKey(key)){const value=localStorage.getItem(key);if(value!==null)snapshot[key]=value}}
-  localStorage.setItem(`socialstart-account-data-${previous}`,JSON.stringify(snapshot))
+  try{localStorage.setItem(`socialstart-account-data-${previous}`,JSON.stringify(snapshot))}catch{/* Current live data remains available if a large snapshot cannot be copied. */}
  }
  if(previous!==accountId){
   const keys=Array.from({length:localStorage.length},(_,index)=>localStorage.key(index)).filter((key):key is string=>Boolean(key&&isAccountDataKey(key)))
@@ -34,11 +40,12 @@ export function AuthPage({signup=false}:{signup?:boolean}){
   const finishGoogle=(response:GoogleCredentialResponse)=>{
    try{
     const claims=readGoogleClaims(response.credential)
-    if(claims.aud!==GOOGLE_CLIENT_ID||!claims.email_verified||claims.exp*1000<=Date.now())throw new Error('Invalid Google credential')
+    if(claims.aud!==GOOGLE_CLIENT_ID||!claims.email_verified||claims.exp*1000<=Date.now()){setError('Google returned an invalid or expired sign-in. Please try again.');return}
     const googleName=claims.name||claims.email.split('@')[0],googleUsername=claims.email.split('@')[0].replace(/[^a-zA-Z0-9._]/g,'')
-    switchAccount(`google-${claims.sub}`,{name:googleName,username:googleUsername,email:claims.email,...(claims.picture?{avatar:claims.picture}:{})})
+    try{switchAccount(`google-${claims.sub}`,{name:googleName,username:googleUsername,email:claims.email,...(claims.picture?{avatar:claims.picture}:{})})}
+    catch{setError('Google signed you in, but this browser could not save the account. Clear some site data and try again.');return}
     window.location.replace('/search')
-   }catch{setError('Google could not verify this sign-in. Please try again.')}
+   }catch{setError('Google could not read the sign-in response. Please try again.')}
   }
   const render=()=>{
    if(cancelled||!googleButton.current||!window.google)return
