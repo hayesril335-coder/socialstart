@@ -3,7 +3,7 @@ import type { Post } from '../types'
 
 export type CartItem = { id:string; title:string; price:number; image:string; quantity:number }
 type AppState = {
-  dark:boolean; setDark:(v:boolean)=>void; unread:number; points:number; earnPoint:()=>void; balance:number;
+  dark:boolean; setDark:(v:boolean)=>void; unread:number; points:number; earnPoint:()=>void; creatorPoints:Record<string,number>; donatePoints:(username:string,amount:number)=>boolean; balance:number;
   cart:CartItem[]; addToCart:(item:Omit<CartItem,'quantity'>,quantity?:number)=>void; updateCartQuantity:(id:string,quantity:number)=>void; clearCart:()=>void;
   userPosts:Post[]; addUserPost:(post:{title:string;image:string;mediaType?:'image'|'video'})=>void;
   savedPosts:Post[]; toggleSavedPost:(post:Post)=>void; isPostSaved:(id:string)=>boolean;
@@ -24,6 +24,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   const [followingUsernames,setFollowingUsernames]=useState<string[]>(()=>read('socialstart-following',[]))
   const [shareCount,setShareCount]=useState(()=>read('socialstart-shares',0))
   const [points,setPoints]=useState(()=>read('socialstart-points',0))
+  const [creatorPoints,setCreatorPoints]=useState<Record<string,number>>(()=>read('socialstart-creator-points',{}))
   const setDark=(value:boolean)=>{setDarkState(value);localStorage.setItem('socialstart-theme',value?'dark':'light')}
   useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light'},[dark])
   useEffect(()=>persist('socialstart-cart',cart),[cart])
@@ -33,6 +34,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   useEffect(()=>persist('socialstart-following',followingUsernames),[followingUsernames])
   useEffect(()=>persist('socialstart-shares',shareCount),[shareCount])
   useEffect(()=>persist('socialstart-points',points),[points])
+  useEffect(()=>persist('socialstart-creator-points',creatorPoints),[creatorPoints])
 
   const addToCart=(item:Omit<CartItem,'quantity'>,quantity=1)=>setCart(current=>current.some(x=>x.id===item.id)?current.map(x=>x.id===item.id?{...x,quantity:Math.min(99,x.quantity+quantity)}:x):[...current,{...item,quantity}])
   const updateCartQuantity=(id:string,quantity:number)=>setCart(current=>quantity<=0?current.filter(x=>x.id!==id):current.map(x=>x.id===id?{...x,quantity:Math.min(99,quantity)}:x))
@@ -44,6 +46,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   const toggleFollow=(username:string)=>setFollowingUsernames(current=>current.includes(username)?current.filter(x=>x!==username):[...current,username])
   const viewPost=(id:string)=>setUserPosts(current=>current.map(post=>post.id===id?{...post,views:String(Number(post.views)+1)}:post))
   const recordShare=()=>setShareCount(current=>current+1)
-  return <Context.Provider value={{dark,setDark,unread:0,points,earnPoint:()=>setPoints(current=>current+1),balance:0,cart,addToCart,updateCartQuantity,clearCart:()=>setCart([]),userPosts,addUserPost,savedPosts,toggleSavedPost,isPostSaved:id=>savedPosts.some(x=>x.id===id),likedPostIds,togglePostLike,followingUsernames,toggleFollow,viewPost,shareCount,recordShare}}>{children}</Context.Provider>
+  const donatePoints=(username:string,amount:number)=>{if(!Number.isInteger(amount)||amount<1||amount>points)return false;setPoints(current=>current-amount);setCreatorPoints(current=>({...current,[username]:(current[username]||0)+amount}));return true}
+  return <Context.Provider value={{dark,setDark,unread:0,points,earnPoint:()=>setPoints(current=>current+1),creatorPoints,donatePoints,balance:0,cart,addToCart,updateCartQuantity,clearCart:()=>setCart([]),userPosts,addUserPost,savedPosts,toggleSavedPost,isPostSaved:id=>savedPosts.some(x=>x.id===id),likedPostIds,togglePostLike,followingUsernames,toggleFollow,viewPost,shareCount,recordShare}}>{children}</Context.Provider>
 }
 export const useApp=()=>{const value=useContext(Context);if(!value)throw new Error('AppProvider missing');return value}
