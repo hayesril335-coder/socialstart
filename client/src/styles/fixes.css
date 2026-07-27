@@ -25,7 +25,8 @@
 .purchase-modal label input{display:block;width:100%;margin-top:7px;padding:13px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)}
 .modal-close{position:absolute;right:14px;top:14px;border:0;background:none}
 .modal-close svg{width:20px}
-.profile-post-feed{max-width:1040px;margin:20px auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.profile-post-feed{max-width:1180px;margin:20px auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.profile-post-tile .media-wrap{aspect-ratio:1}.profile-post-tile{border-radius:14px}
 .post-actions>div{display:contents!important}
 .post-actions>button,.post-actions .post-action-link,.post-actions>div>button{flex:1;display:grid;place-items:center}
 .story-viewer{position:fixed;inset:0;z-index:200;background:#080707;color:white;display:grid;place-items:center;overflow:hidden}

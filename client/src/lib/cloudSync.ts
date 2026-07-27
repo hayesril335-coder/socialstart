@@ -7,6 +7,7 @@ const excludedKeys = new Set([
   'socialstart-accounts',
   'socialstart-authenticated',
   'socialstart-active-account',
+  'socialstart-moderator-session',
 ])
 const privateKeyFragments = ['password', 'security', 'billing']
 let cloudUser: User | null = null
@@ -185,51 +186,37 @@ const updatePresence = async () => {
 
 export async function prepareCloudAccount(user: User, profile?: Record<string, string>) {
   cloudUser = user
-  const previousAccountId = localStorage.getItem('socialstart-active-account') || restoreLegacySnapshot(user)
-  if (previousAccountId && previousAccountId !== user.uid) {
-    for (const section of ['store', 'promo']) {
-      const oldKey = `socialstart-account-${section}-${previousAccountId}`
-      const newKey = `socialstart-account-${section}-${user.uid}`
-      const oldValue = localStorage.getItem(oldKey)
-      if (oldValue && !localStorage.getItem(newKey)) localStorage.setItem(newKey, oldValue)
-    }
-  }
+  const legacyAccountId = restoreLegacySnapshot(user)
+  const legacyState = legacyAccountId ? collectState() : {}
   const reference = doc(db, 'users', user.uid)
   const snapshot = await getDoc(reference)
   if (snapshot.exists()) {
     const cloudState = snapshot.data().state
+    const state = cloudState && typeof cloudState === 'object' ? { ...cloudState as Record<string, string> } : {}
+    let repaired = false
     if (cloudState && typeof cloudState === 'object') {
-      const state = cloudState as Record<string, string>
       try {
         const savedProfile = JSON.parse(state['socialstart-settings-profile'] || '{}') as { username?: string }
-        if (savedProfile.username === 'socialstartmod' && user.email !== 'moderator@socialstart.app') {
+        const moderatorLeak = savedProfile.username === 'socialstartmod' || state['socialstart-moderator-session'] === 'true'
+        if (moderatorLeak && user.email !== 'moderator@socialstart.app') {
           const emailName = user.email?.split('@')[0] || user.uid.slice(0, 12)
-          state['socialstart-settings-profile'] = JSON.stringify({
-            name: user.displayName || emailName,
-            username: emailName.replace(/[^a-zA-Z0-9._]/g, ''),
-            email: user.email || '',
-            bio: 'Creating and sharing on SocialStart.',
-            location: '',
-            ...(user.photoURL ? { avatar: user.photoURL } : {}),
-          })
+          if(savedProfile.username === 'socialstartmod')state['socialstart-settings-profile'] = JSON.stringify({name:user.displayName||emailName,username:emailName.replace(/[^a-zA-Z0-9._]/g,''),email:user.email||'',bio:'Creating and sharing on SocialStart.',location:'',...(user.photoURL?{avatar:user.photoURL}:{})})
           const balance = Number(JSON.parse(state['socialstart-balance'] || '0'))
           const points = Number(JSON.parse(state['socialstart-points'] || '0'))
           state['socialstart-balance'] = JSON.stringify(Math.max(0, balance - 1000))
           state['socialstart-points'] = JSON.stringify(Math.max(0, points - 1000))
+          delete state['socialstart-moderator-session']
+          repaired = true
         }
       } catch { /* Leave a valid non-moderator account state unchanged. */ }
     }
-    const merged = mergeState(
-      cloudState && typeof cloudState === 'object' ? cloudState as Record<string, string> : {},
-      collectState(),
-    )
-    applyState(merged)
-    await setDoc(reference, { state: merged, email: user.email || '', updatedAt: serverTimestamp() }, { merge: true })
+    applyState(state)
+    if(repaired)await setDoc(reference, { state, email: user.email || '', updatedAt: serverTimestamp() }, { merge: true })
   } else {
+    applyState(legacyState)
     if (profile) {
-      let existing: Record<string, string> = {}
-      try { existing = JSON.parse(localStorage.getItem('socialstart-settings-profile') || '{}') } catch { /* use supplied profile */ }
-      localStorage.setItem('socialstart-settings-profile', JSON.stringify({ ...profile, ...existing }))
+      const existing = readJson<Record<string,string>>('socialstart-settings-profile', {})
+      localStorage.setItem('socialstart-settings-profile', JSON.stringify({ ...existing, ...profile }))
     }
     await setDoc(reference, { state: collectState(), email: user.email || '', updatedAt: serverTimestamp() })
   }
