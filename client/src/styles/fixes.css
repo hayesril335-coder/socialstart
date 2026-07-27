@@ -10,3 +10,19 @@
 .profile-live{max-width:620px;margin:25px auto 35px}
 .profile-live>.eyebrow{text-align:center}
 @media(max-width:520px){.donation-panel{grid-template-columns:1fr 70px}.donation-panel button{grid-column:1/-1}}
+.post-lock{position:absolute;right:12px;top:12px;z-index:3;border:0;border-radius:9px;background:rgba(0,0,0,.72);color:white;padding:8px 10px;display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700}
+.post-lock svg{width:15px}
+.locked-media .media-content>img,.locked-media .media-content>video{filter:blur(18px);transform:scale(1.08)}
+.purchase-gate{position:relative;border:0;padding:0;text-align:initial;overflow:hidden}
+.purchase-gate>strong{position:absolute;z-index:2;inset:0;margin:auto;width:max-content;max-width:85%;height:max-content;background:rgba(20,15,15,.82);color:white;border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:7px}
+.purchase-gate>strong svg{width:17px}
+.purchase-modal{position:fixed;inset:0;z-index:120;background:rgba(10,8,8,.76);display:grid;place-items:center;padding:20px}
+.purchase-modal>div{width:min(410px,100%);position:relative;background:var(--paper);border-radius:18px;padding:30px;text-align:center}
+.purchase-modal>div>svg{width:35px;color:var(--wine)}
+.purchase-modal h2{font:600 30px 'Playfair Display';margin:10px 0}
+.purchase-modal p{font-size:13px;color:var(--muted)}
+.purchase-modal label{display:block;text-align:left;font-size:11px;font-weight:700;margin:20px 0}
+.purchase-modal label input{display:block;width:100%;margin-top:7px;padding:13px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)}
+.modal-close{position:absolute;right:14px;top:14px;border:0;background:none}
+.modal-close svg{width:20px}
+.profile-post-feed{max-width:680px;margin:20px auto;display:grid;gap:24px}

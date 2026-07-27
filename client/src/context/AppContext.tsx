@@ -9,6 +9,7 @@ type AppState = {
   savedPosts:Post[]; toggleSavedPost:(post:Post)=>void; isPostSaved:(id:string)=>boolean;
   likedPostIds:string[]; togglePostLike:(id:string)=>void; followingUsernames:string[]; toggleFollow:(username:string)=>void;
   viewPost:(id:string)=>void; shareCount:number; recordShare:()=>void;
+  lockedPosts:Record<string,number>; setPostPrice:(id:string,price:number)=>void; unlockPost:(id:string)=>void; purchasedPostIds:string[]; purchasePost:(id:string)=>void;
 }
 
 const Context = createContext<AppState | null>(null)
@@ -25,6 +26,8 @@ export function AppProvider({children}:{children:ReactNode}) {
   const [shareCount,setShareCount]=useState(()=>read('socialstart-shares',0))
   const [points,setPoints]=useState(()=>read('socialstart-points',0))
   const [creatorPoints,setCreatorPoints]=useState<Record<string,number>>(()=>read('socialstart-creator-points',{}))
+  const [lockedPosts,setLockedPosts]=useState<Record<string,number>>(()=>read('socialstart-locked-posts',{}))
+  const [purchasedPostIds,setPurchasedPostIds]=useState<string[]>(()=>read('socialstart-purchased-posts',[]))
   const setDark=(value:boolean)=>{setDarkState(value);localStorage.setItem('socialstart-theme',value?'dark':'light')}
   useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light'},[dark])
   useEffect(()=>persist('socialstart-cart',cart),[cart])
@@ -35,6 +38,8 @@ export function AppProvider({children}:{children:ReactNode}) {
   useEffect(()=>persist('socialstart-shares',shareCount),[shareCount])
   useEffect(()=>persist('socialstart-points',points),[points])
   useEffect(()=>persist('socialstart-creator-points',creatorPoints),[creatorPoints])
+  useEffect(()=>persist('socialstart-locked-posts',lockedPosts),[lockedPosts])
+  useEffect(()=>persist('socialstart-purchased-posts',purchasedPostIds),[purchasedPostIds])
 
   const addToCart=(item:Omit<CartItem,'quantity'>,quantity=1)=>setCart(current=>current.some(x=>x.id===item.id)?current.map(x=>x.id===item.id?{...x,quantity:Math.min(99,x.quantity+quantity)}:x):[...current,{...item,quantity}])
   const updateCartQuantity=(id:string,quantity:number)=>setCart(current=>quantity<=0?current.filter(x=>x.id!==id):current.map(x=>x.id===id?{...x,quantity:Math.min(99,quantity)}:x))
@@ -47,6 +52,9 @@ export function AppProvider({children}:{children:ReactNode}) {
   const viewPost=(id:string)=>setUserPosts(current=>current.map(post=>post.id===id?{...post,views:String(Number(post.views)+1)}:post))
   const recordShare=()=>setShareCount(current=>current+1)
   const donatePoints=(username:string,amount:number)=>{if(!Number.isInteger(amount)||amount<1||amount>points)return false;setPoints(current=>current-amount);setCreatorPoints(current=>({...current,[username]:(current[username]||0)+amount}));return true}
-  return <Context.Provider value={{dark,setDark,unread:0,points,earnPoint:()=>setPoints(current=>current+1),creatorPoints,donatePoints,balance:0,cart,addToCart,updateCartQuantity,clearCart:()=>setCart([]),userPosts,addUserPost,savedPosts,toggleSavedPost,isPostSaved:id=>savedPosts.some(x=>x.id===id),likedPostIds,togglePostLike,followingUsernames,toggleFollow,viewPost,shareCount,recordShare}}>{children}</Context.Provider>
+  const setPostPrice=(id:string,price:number)=>setLockedPosts(current=>({...current,[id]:price}))
+  const unlockPost=(id:string)=>setLockedPosts(current=>{const next={...current};delete next[id];return next})
+  const purchasePost=(id:string)=>setPurchasedPostIds(current=>current.includes(id)?current:[...current,id])
+  return <Context.Provider value={{dark,setDark,unread:0,points,earnPoint:()=>setPoints(current=>current+1),creatorPoints,donatePoints,balance:0,cart,addToCart,updateCartQuantity,clearCart:()=>setCart([]),userPosts,addUserPost,savedPosts,toggleSavedPost,isPostSaved:id=>savedPosts.some(x=>x.id===id),likedPostIds,togglePostLike,followingUsernames,toggleFollow,viewPost,shareCount,recordShare,lockedPosts,setPostPrice,unlockPost,purchasedPostIds,purchasePost}}>{children}</Context.Provider>
 }
 export const useApp=()=>{const value=useContext(Context);if(!value)throw new Error('AppProvider missing');return value}
