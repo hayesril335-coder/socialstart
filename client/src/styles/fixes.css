@@ -68,3 +68,4 @@
 .card-checkout>div{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .card-checkout label{margin:0}
 .card-checkout button{margin-top:6px}
+.comments>div>img{width:36px!important;height:36px!important;min-width:36px;aspect-ratio:1;object-fit:cover}
