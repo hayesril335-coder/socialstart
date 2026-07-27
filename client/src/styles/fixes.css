@@ -82,3 +82,9 @@
 .notification-row>div{flex:1}
 .notification-row>strong{min-width:22px;height:22px;padding:0 6px;border-radius:20px;background:#e73578;color:white;display:grid;place-items:center;font-size:11px}
 @media(max-width:760px){.profile-main>.eyebrow{margin-top:22px;margin-bottom:4px}}
+.store-banner-wide{width:100vw;margin-left:calc(50% - 50vw);border-radius:0;min-height:280px;padding-left:max(40px,calc((100vw - 1050px)/2 + 40px));padding-right:max(40px,calc((100vw - 1050px)/2 + 40px));background-size:cover;background-position:center}
+.banner-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.banner-actions button{border:1px solid rgba(255,255,255,.65);background:rgba(35,13,21,.45);color:white;border-radius:10px;min-height:42px;padding:0 14px;display:inline-flex;align-items:center;gap:7px;font-weight:700}
+.banner-actions button svg{width:17px;height:17px}
+.banner-actions span{font-size:11px;font-weight:700}
+@media(max-width:760px){.store-banner-wide{min-height:250px;padding:30px 24px;align-items:flex-end}.banner-actions{justify-content:flex-start}}

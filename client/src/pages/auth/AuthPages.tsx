@@ -14,7 +14,7 @@ const readGoogleClaims=(credential:string):GoogleClaims=>{
  return JSON.parse(new TextDecoder().decode(bytes))
 }
 const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account','socialstart-public-posts','socialstart-post-metrics','socialstart-global-creator-points'])
-const isAccountDataKey=(key:string)=>key.startsWith('socialstart-')&&!globalKeys.has(key)&&!key.startsWith('socialstart-account-data-')
+const isAccountDataKey=(key:string)=>key.startsWith('socialstart-')&&!globalKeys.has(key)&&!key.startsWith('socialstart-account-data-')&&!key.startsWith('socialstart-account-store-')
 const switchAccount=(accountId:string,profile:Record<string,string>)=>{
  const previous=localStorage.getItem('socialstart-active-account')
  if(previous&&previous!==accountId){

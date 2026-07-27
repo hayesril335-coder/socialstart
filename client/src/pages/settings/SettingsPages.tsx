@@ -31,7 +31,7 @@ export function SettingsPage(){
    const snapshot:Record<string,string>={}
    for(let index=0;index<localStorage.length;index++){
     const key=localStorage.key(index)
-    if(key?.startsWith('socialstart-')&&!globalKeys.has(key)&&!key.startsWith('socialstart-account-data-')){
+    if(key?.startsWith('socialstart-')&&!globalKeys.has(key)&&!key.startsWith('socialstart-account-data-')&&!key.startsWith('socialstart-account-store-')){
      const value=localStorage.getItem(key)
      if(value!==null)snapshot[key]=value
     }
