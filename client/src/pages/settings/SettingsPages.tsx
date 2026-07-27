@@ -1,11 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { ChevronRight, CircleDollarSign, CreditCard, LockKeyhole, LogOut, MapPin, Moon, UserRound, WalletCards } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 
 type Values=Record<string,string>
 const defaults:Record<string,Values>={
- Profile:{name:'Alex Morgan',username:'alexmorgan',bio:'Creative director, weekend wanderer, and believer in making the internet feel a little more human.',location:'Los Angeles, CA'},
+ Profile:{name:'Alex Morgan',username:'alexmorgan',avatar:'',bio:'Creative director, weekend wanderer, and believer in making the internet feel a little more human.',location:'Los Angeles, CA'},
  Account:{email:'alex@example.com',phone:'',password:''},
  Security:{currentPassword:'',newPassword:'',confirmPassword:''},
  Billing:{cardName:'',cardNumber:'',expiry:'',cvv:''},
@@ -30,11 +30,13 @@ export function SettingsPage(){
 
 export function SettingsDetailPage({type}:{type:string}){
  const {balance}=useApp()
+ const photoInput=useRef<HTMLInputElement>(null)
  const [values,setValues]=useState<Values>(()=>readValues(type)),[message,setMessage]=useState('')
  if(type==='Wallet')return <div className="form-page"><p className="eyebrow">SETTINGS / WALLET</p><h1>Your wallet</h1><div className="balance-card"><span>AVAILABLE BALANCE</span><b>${balance.toFixed(2)}</b><small>Ready to spend or tip</small></div><label className="field">Add funds<input type="number" min="1" placeholder="$0.00"/></label><button className="primary-btn wide" onClick={()=>setMessage('Add-funds setup is ready for a payment provider.')}><CircleDollarSign/> Continue</button>{message&&<p className="save-success">{message}</p>}<h3>Recent activity</h3><div className="profile-empty"><p>No wallet activity yet.</p></div></div>
  const submit=(event:FormEvent)=>{event.preventDefault();if(type==='Security'&&values.newPassword!==values.confirmPassword){setMessage('New passwords do not match.');return}localStorage.setItem(storageKey(type),JSON.stringify(values));if(type==='Profile')window.dispatchEvent(new Event('socialstart-profile-updated'));setMessage(`${type} changes saved.`)}
  return <form className="form-page" onSubmit={submit}><p className="eyebrow">SETTINGS / {type.toUpperCase()}</p><h1>{type==='Address'?'Addresses':type}</h1>
-  {Object.entries(values).map(([key,value])=><label className="field" key={key}>{labels[type]?.[key]||key}{key==='bio'?<textarea value={value} onChange={e=>setValues({...values,[key]:e.target.value})}/>:<input value={value} required={key!=='phone'} type={key.toLowerCase().includes('password')||key==='cvv'?'password':key==='email'?'email':'text'} autoComplete="off" onChange={e=>setValues({...values,[key]:e.target.value})}/>}</label>)}
+  {type==='Profile'&&<div className="profile-photo-editor">{values.avatar?<img src={values.avatar} alt="New profile"/>:<UserRound/>}<input ref={photoInput} hidden type="file" accept="image/*" onChange={event=>{const file=event.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>setValues({...values,avatar:String(reader.result)});reader.readAsDataURL(file)}}/><button type="button" className="secondary-btn" onClick={()=>photoInput.current?.click()}>Change profile picture</button></div>}
+  {Object.entries(values).filter(([key])=>key!=='avatar').map(([key,value])=><label className="field" key={key}>{labels[type]?.[key]||key}{key==='bio'?<textarea value={value} onChange={e=>setValues({...values,[key]:e.target.value})}/>:<input value={value} required={key!=='phone'} type={key.toLowerCase().includes('password')||key==='cvv'?'password':key==='email'?'email':'text'} autoComplete="off" onChange={e=>setValues({...values,[key]:e.target.value})}/>}</label>)}
   <button className="primary-btn settings-save" type="submit">Save changes</button>{message&&<p className={message.includes('match')?'camera-error':'save-success'}>{message}</p>}
  </form>
 }
