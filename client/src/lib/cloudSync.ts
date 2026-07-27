@@ -12,6 +12,7 @@ const privateKeyFragments = ['password', 'security', 'billing']
 let cloudUser: User | null = null
 let ready = false
 let saveTimer: number | undefined
+let presenceTimer: number | undefined
 
 const isSyncableKey = (key: string) =>
   key.startsWith('socialstart-') &&
@@ -115,6 +116,7 @@ const syncSharedData = async (user: User) => {
     ...profile,
     uid: user.uid,
     email: user.email || '',
+    lastActiveAt: Date.now(),
     stats,
     updatedAt: serverTimestamp(),
   }, { merge: true })
@@ -195,6 +197,8 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
   await syncSharedData(user)
   await loadSharedData()
   ready = true
+  window.clearInterval(presenceTimer)
+  presenceTimer = window.setInterval(scheduleCloudSave, 60_000)
 }
 
 export function scheduleCloudSave() {
@@ -215,4 +219,5 @@ export function stopCloudSync() {
   ready = false
   cloudUser = null
   window.clearTimeout(saveTimer)
+  window.clearInterval(presenceTimer)
 }
