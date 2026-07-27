@@ -7,7 +7,7 @@ import { prepareCloudAccount } from '../../lib/cloudSync'
 
 const moderatorEmail='moderator@socialstart.app'
 const moderatorPassword='SocialStartMod2026!'
-const moderatorAccountId='socialstart-moderator'
+const moderatorAccountId='socialstart-moderator-v2'
 const moderatorResetKeys=['socialstart-user-posts','socialstart-saved-posts','socialstart-liked-posts','socialstart-viewed-posts','socialstart-following','socialstart-cart','socialstart-locked-posts','socialstart-purchased-posts','socialstart-post-metrics','socialstart-membership-plans','socialstart-membership-purchases','socialstart-points-used']
 
 const authMessage=(error:unknown)=>{
