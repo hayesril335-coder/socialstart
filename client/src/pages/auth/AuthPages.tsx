@@ -7,7 +7,7 @@ type GoogleCredentialResponse={credential:string}
 const GOOGLE_CLIENT_ID='1048776122497-o6egk5iaiohriajjdntm8bk3ttkfpmtk.apps.googleusercontent.com'
 const hashPassword=async(password:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(password)))).map(byte=>byte.toString(16).padStart(2,'0')).join('')
 const readGoogleClaims=(credential:string):GoogleClaims=>JSON.parse(decodeURIComponent(atob(credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')).split('').map(character=>`%${character.charCodeAt(0).toString(16).padStart(2,'0')}`).join('')))
-const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account'])
+const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account','socialstart-public-posts'])
 const isAccountDataKey=(key:string)=>key.startsWith('socialstart-')&&!globalKeys.has(key)&&!key.startsWith('socialstart-account-data-')
 const switchAccount=(accountId:string,profile:Record<string,string>)=>{
  const previous=localStorage.getItem('socialstart-active-account')

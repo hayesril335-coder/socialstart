@@ -27,7 +27,7 @@ export function SettingsPage(){
  const logout=()=>{
   const accountId=localStorage.getItem('socialstart-active-account')
   if(accountId){
-   const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account'])
+   const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account','socialstart-public-posts'])
    const snapshot:Record<string,string>={}
    for(let index=0;index<localStorage.length;index++){
     const key=localStorage.key(index)
