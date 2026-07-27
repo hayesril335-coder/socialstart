@@ -1,0 +1,28 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Bookmark, Heart, Image, Upload, UserPlus, Video } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useApp } from '../../context/AppContext'
+import { formatCount } from '../../lib/format'
+import { scheduleCloudSave } from '../../lib/cloudSync'
+
+type Promo={title:string;media:string;mediaType:'image'|'video';views:number;author:string;username:string;avatar:string}
+const account=()=>localStorage.getItem('socialstart-active-account')||'guest'
+const pointKey=(type:'image'|'video')=>`socialstart-${type}-view-points-${account()}`
+const promos=(type:'image'|'video')=>{const found:{key:string;promo:Promo}[]=[];for(let index=0;index<localStorage.length;index++){const key=localStorage.key(index);if(!key?.startsWith('socialstart-account-promo-')||key.includes(account()))continue;try{const promo=JSON.parse(localStorage.getItem(key)||'null') as Promo|null;if(promo?.mediaType===type)found.push({key,promo})}catch{/* Ignore damaged promos. */}}return found}
+
+export function OneForOneDashboard(){
+ const [photoPoints]=useState(()=>Number(localStorage.getItem(pointKey('image'))||0)),[videoPoints]=useState(()=>Number(localStorage.getItem(pointKey('video'))||0))
+ return <div className="create-page one-for-one-dashboard"><p className="eyebrow">ONE FOR ONE · VIEW FOR VIEW</p><h1>Give a view.<br/><em>Get a view.</em></h1><p className="lead">View ten creators' posts and random creators will be shown yours. Photo and video view points are tracked separately.</p><section className="point-balance-grid"><div><span>PHOTO VIEW POINTS</span><b>{formatCount(photoPoints)}</b></div><div><span>VIDEO VIEW POINTS</span><b>{formatCount(videoPoints)}</b></div></section><div className="one-for-one-sections"><section><h2>Photo View Points</h2><div><Link to="/create/one-for-one/upload?type=image"><Upload/><b>Upload Image</b><span>This image will gain views</span></Link><Link className="accent" to="/create/one-for-one/earn?type=image"><Image/><b>Earn Photo View Points</b><span>View each photo for 3 seconds</span></Link></div></section><section><h2>Video View Points</h2><div><Link to="/create/one-for-one/upload?type=video"><Upload/><b>Upload Video</b><span>Videos can be up to 45 seconds</span></Link><Link className="accent" to="/create/one-for-one/earn?type=video"><Video/><b>Earn Video View Points</b><span>Watch the entire video</span></Link></div></section></div></div>
+}
+
+export function EarnViewPointsPage(){
+ const [params]=useSearchParams(),type: 'image'|'video'=params.get('type')==='video'?'video':'image',{followingUsernames,toggleFollow}=useApp(),available=useMemo(()=>promos(type),[type])
+ const [index,setIndex]=useState(0),[seconds,setSeconds]=useState(type==='image'?3:0),[ready,setReady]=useState(false),[digit,setDigit]=useState(0),[showDigit,setShowDigit]=useState(false),[answer,setAnswer]=useState(''),[result,setResult]=useState(''),[liked,setLiked]=useState(false),[saved,setSaved]=useState(false),[points,setPoints]=useState(()=>Number(localStorage.getItem(pointKey(type))||0))
+ const selected=available[index%Math.max(1,available.length)]?.promo
+ const fallback:Promo=type==='video'?{title:'A short creative film',media:'https://www.w3schools.com/html/mov_bbb.mp4',mediaType:'video',views:0,author:'SocialStart Creator',username:'lucafilm',avatar:''}:{title:'A moment worth sharing',media:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1000&auto=format&fit=crop',mediaType:'image',views:0,author:'SocialStart Creator',username:'sofiabell',avatar:''}
+ const promo=selected||fallback
+ const challenge=()=>{const next=Math.floor(Math.random()*9)+1;setDigit(next);setShowDigit(true);window.setTimeout(()=>{setShowDigit(false);setReady(true)},900)}
+ useEffect(()=>{setReady(false);setResult('');setAnswer('');setLiked(false);setSaved(false);if(type==='image'){setSeconds(3);const timer=window.setInterval(()=>setSeconds(current=>{if(current<=1){window.clearInterval(timer);challenge();return 0}return current-1}),1000);return()=>window.clearInterval(timer)}},[index,type])
+ const verify=()=>{if(Number(answer)!==digit){setResult('Incorrect');return}const next=points+1;setPoints(next);localStorage.setItem(pointKey(type),String(next));scheduleCloudSave();setResult('+1 point');window.setTimeout(()=>setIndex(current=>current+1),650)}
+ return <div className="form-page earn-view-page"><p className="eyebrow">{type==='image'?'PHOTO':'VIDEO'} VIEW POINTS · {formatCount(points)}</p><div className="earn-view-card"><header><b>{promo.title}</b><strong>{type==='image'?`${seconds}s`:'Watch entire video'}</strong></header><div className="earn-media">{type==='video'?<video src={promo.media} autoPlay controls playsInline onEnded={challenge}/>:<img src={promo.media} alt={promo.title}/>} {showDigit&&<i className="verification-digit">{digit}</i>}</div><footer><button className={liked?'active':''} onClick={()=>setLiked(!liked)}><Heart fill={liked?'currentColor':'none'}/></button><button className={saved?'active':''} onClick={()=>setSaved(!saved)}><Bookmark fill={saved?'currentColor':'none'}/></button><button className="follow" onClick={()=>toggleFollow(promo.username)}><UserPlus/> {followingUsernames.includes(promo.username)?'Following':'Follow'}</button></footer></div>{ready&&<div className="verification-box"><label>What number appeared?<input autoFocus inputMode="numeric" maxLength={1} value={answer} onChange={event=>setAnswer(event.target.value.replace(/\D/g,'').slice(0,1))}/></label><button className="primary-btn" onClick={verify} disabled={!answer}>Submit</button>{result&&<b className={result==='Incorrect'?'incorrect':''}>{result}</b>}</div>}</div>
+}

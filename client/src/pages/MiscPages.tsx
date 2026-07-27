@@ -3,6 +3,7 @@ import { Bell, Camera, Maximize, MessageCircle, MonitorUp, Radio, Square, X } fr
 import { Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { CategoryPicker } from '../components/CategoryPicker'
+import { HashtagPicker } from '../components/HashtagPicker'
 
 const notificationNames:Record<string,string>={welcome:'SocialStart Welcome Bot','1':'Sofia Bell','2':'Mason Reed','3':'Amara Jones'}
 const captureScreen=async()=>{
@@ -22,7 +23,7 @@ export function NotificationsPage(){
 
 export function LivePage(){
  const video=useRef<HTMLVideoElement>(null),stream=useRef<MediaStream|null>(null)
- const [live,setLive]=useState(false),[expanded,setExpanded]=useState(false),[starting,setStarting]=useState(false),[error,setError]=useState(''),[title,setTitle]=useState(''),[submittedTitle,setSubmittedTitle]=useState(''),[category,setCategory]=useState(''),[views,setViews]=useState(0),[source,setSource]=useState<'camera'|'screen'>('camera')
+ const [live,setLive]=useState(false),[expanded,setExpanded]=useState(false),[starting,setStarting]=useState(false),[error,setError]=useState(''),[title,setTitle]=useState(''),[submittedTitle,setSubmittedTitle]=useState(''),[category,setCategory]=useState(''),[hashtags,setHashtags]=useState<string[]>([]),[views,setViews]=useState(0),[source,setSource]=useState<'camera'|'screen'>('camera')
  const endLive=()=>{stream.current?.getTracks().forEach(track=>track.stop());stream.current=null;if(video.current)video.current.srcObject=null;setLive(false);setExpanded(false);setViews(0)}
  useEffect(()=>()=>stream.current?.getTracks().forEach(track=>track.stop()),[])
  useEffect(()=>{if(!live)return;const timer=window.setInterval(()=>setViews(current=>current+Math.ceil(Math.random()*3)),2500);return()=>window.clearInterval(timer)},[live])
@@ -30,6 +31,7 @@ export function LivePage(){
  return <div className="form-page centered"><p className="eyebrow">GO LIVE</p><h1>Share the moment,<br/>as it happens.</h1><div className={`${live?'live-preview is-live':'live-preview'}${expanded?' live-expanded':''}`}><video ref={video} muted playsInline/>{!live&&<><Radio/><span>{source==='screen'?'Your shared screen will appear here':'Your camera will appear here'}</span></>}{live&&<><i>LIVE</i><b className="live-view-count">{views} views</b><button className="live-fullscreen" onClick={()=>setExpanded(!expanded)} aria-label={expanded?'Exit livestream fullscreen':'View livestream fullscreen'}>{expanded?<X/>:<Maximize/>}</button></>}</div>
   <form className="live-title-form" onSubmit={event=>{event.preventDefault();if(title.trim())setSubmittedTitle(title.trim())}}><label className="field">Stream title<input value={title} onChange={event=>{setTitle(event.target.value);setSubmittedTitle('')}} placeholder="What are you sharing?"/></label><button className="secondary-btn" disabled={!title.trim()} type="submit">Submit title</button></form>
   <CategoryPicker value={category} onChange={setCategory}/>
+  <HashtagPicker value={hashtags} onChange={setHashtags}/>
   {submittedTitle&&<p className="save-success">Title ready: {submittedTitle}</p>}{error&&<p className="camera-error">{error}</p>}
   {!live&&<div className="live-source-picker"><button type="button" className={source==='camera'?'active':''} onClick={()=>setSource('camera')}><Camera/> Camera</button><button type="button" className={source==='screen'?'active':''} onClick={()=>setSource('screen')}><MonitorUp/> Screen share</button></div>}
   <div className="live-actions">{live?<button onClick={endLive} className="secondary-btn end-live"><Square/> End live stream</button>:<button onClick={startLive} disabled={starting||!submittedTitle} className="primary-btn"><Radio/> {starting?'Starting…':source==='screen'?'Start screen share':'Start live stream'}</button>}</div>

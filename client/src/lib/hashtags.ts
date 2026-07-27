@@ -36,5 +36,9 @@ export const setHashtagRank=(rawTag:string,username:string,rank:HashtagRank)=>{
 }
 export const rankFor=(rawTag:string,username:string):HashtagRank|undefined=>hashtagRegistry()[clean(rawTag)]?.ranks[username]
 export const ownedHashtags=(username:string)=>Object.values(hashtagRegistry()).filter(item=>item.founder===username)
+export const createHashtag=(rawTag:string,username:string)=>{
+ const tag=clean(rawTag),registry=hashtagRegistry();if(!tag||registry[tag]||ownedHashtags(username).length>=10)return ''
+ registry[tag]={tag,founder:username,createdAt:Date.now(),ranks:{[username]:'Founder'}};saveRegistry(registry);followHashtag(tag,username);return tag
+}
 export const rankPriority:Record<HashtagRank,number>={'Founder':0,'Co Founder':1,'Diamond Member':2,'Gold Member':3,'Silver Member':4,'Bronze Member':5,'Member':6}
 export const rankBoostHours:Record<HashtagRank,number>={'Founder':12,'Co Founder':24,'Diamond Member':48,'Gold Member':96,'Silver Member':144,'Bronze Member':192,'Member':Number.POSITIVE_INFINITY}
