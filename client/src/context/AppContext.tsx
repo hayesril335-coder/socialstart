@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Post } from '../types'
+import { scheduleCloudSave } from '../lib/cloudSync'
 
 export type CartItem = { id:string; title:string; price:number; image:string; quantity:number }
 export type PostMetric = { likes:number; views:number }
@@ -15,7 +16,7 @@ type AppState = {
 
 const Context = createContext<AppState | null>(null)
 const read=<T,>(key:string,fallback:T):T=>{try{return JSON.parse(localStorage.getItem(key)||'') as T}catch{return fallback}}
-const persist=(key:string,value:unknown)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch{/* Large video blobs remain available for this session. */}}
+const persist=(key:string,value:unknown)=>{try{localStorage.setItem(key,JSON.stringify(value));scheduleCloudSave()}catch{/* Large video blobs remain available for this session. */}}
 const readPublicPosts=()=>{
  const combined=read<Post[]>('socialstart-public-posts',[])
  for(let index=0;index<localStorage.length;index++){
@@ -53,7 +54,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   const [pointsUsed,setPointsUsed]=useState(()=>read('socialstart-points-used',0))
   const [balance,setBalance]=useState(()=>read('socialstart-balance',0))
   const [unreadByConversation,setUnreadByConversation]=useState<Record<string,number>>(()=>read('socialstart-unread-messages',{welcome:1}))
-  const setDark=(value:boolean)=>{setDarkState(value);localStorage.setItem('socialstart-theme',value?'dark':'light')}
+  const setDark=(value:boolean)=>{setDarkState(value);localStorage.setItem('socialstart-theme',value?'dark':'light');scheduleCloudSave()}
   useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light'},[dark])
   useEffect(()=>persist('socialstart-cart',cart),[cart])
   useEffect(()=>persist('socialstart-user-posts',userPosts),[userPosts])

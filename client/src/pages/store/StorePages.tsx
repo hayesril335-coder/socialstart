@@ -3,6 +3,7 @@ import { ImagePlus, Minus, Plus, Save, ShoppingBag, Store, Trash2 } from 'lucide
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { products } from '../../utils/mockData'
 import { useApp } from '../../context/AppContext'
+import { scheduleCloudSave } from '../../lib/cloudSync'
 
 type DraftProduct={id:number;title:string;quantity:number;price:number;image:string}
 type AccountStore={username?:string;storeName?:string;description?:string;banner?:string;products?:DraftProduct[]}
@@ -37,7 +38,7 @@ export function ManageStorePage(){
  const [storeName,setStoreName]=useState(initialDetails.storeName||''),[description,setDescription]=useState(initialDetails.description||''),[banner,setBanner]=useState(initialDetails.banner||''),[pendingBanner,setPendingBanner]=useState(''),[detailsSaved,setDetailsSaved]=useState(false),[bannerSaved,setBannerSaved]=useState(false),[title,setTitle]=useState(''),[quantity,setQuantity]=useState(''),[price,setPrice]=useState(''),[productImage,setProductImage]=useState('')
  const [storeProducts,setStoreProducts]=useState<DraftProduct[]>(()=>initialDetails.products||(()=>{try{return JSON.parse(localStorage.getItem('socialstart-store-products')||'[]')}catch{return []}})())
  const username=(()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}').username||'creator'}catch{return 'creator'}})()
- const saveStoreRecord=(updates:Partial<AccountStore>)=>{let current:AccountStore={};try{current=JSON.parse(localStorage.getItem(detailsKey)||'{}')}catch{/* Replace damaged store data. */}localStorage.setItem(detailsKey,JSON.stringify({...current,username,storeName:storeName.trim(),description:description.trim(),banner,...updates}))}
+ const saveStoreRecord=(updates:Partial<AccountStore>)=>{let current:AccountStore={};try{current=JSON.parse(localStorage.getItem(detailsKey)||'{}')}catch{/* Replace damaged store data. */}localStorage.setItem(detailsKey,JSON.stringify({...current,username,storeName:storeName.trim(),description:description.trim(),banner,...updates}));scheduleCloudSave()}
  const saveProducts=(next:DraftProduct[])=>{setStoreProducts(next);localStorage.setItem('socialstart-store-products',JSON.stringify(next));saveStoreRecord({products:next})}
  const chooseImage=(file?:File)=>{if(!file)return;const reader=new FileReader();reader.onload=()=>setProductImage(String(reader.result));reader.readAsDataURL(file)}
  const addProduct=()=>{if(!title||!quantity||!price||!productImage)return;saveProducts([...storeProducts,{id:Date.now(),title,quantity:Number(quantity),price:Number(price),image:productImage}]);setTitle('');setQuantity('');setPrice('');setProductImage('')}
