@@ -19,9 +19,9 @@ export const posts:Post[]=[
  p('7',0,'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1200&auto=format&fit=crop','A slow Saturday downtown.','Los Angeles, CA',912,'6.4K',34.052,-118.244),
  p('8',1,'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=1200&auto=format&fit=crop','The first cut is always the hardest.','Portland, OR',756,'4.9K',45.520,-122.674),
  p('9',2,'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1200&auto=format&fit=crop','Stayed for the last light.','Topanga, CA',3876,'25.3K',34.093,-118.602),
- p('10',3,'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1200&auto=format&fit=crop','LIVE: Sunday brunch together.','Echo Park, CA',604,'1.2K',34.078,-118.260,'live'),
- p('11',4,'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&auto=format&fit=crop','LIVE: Twenty-minute morning flow.','Santa Monica, CA',840,'2.8K',34.019,-118.491,'live'),
- p('12',5,'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&auto=format&fit=crop','LIVE: Editing the final scene.','Downtown LA, CA',1120,'3.6K',34.040,-118.250,'live'),
+ p('10',3,'https://www.w3schools.com/html/mov_bbb.mp4','LIVE: Sunday brunch together.','Echo Park, CA',604,'1.2K',34.078,-118.260,'live'),
+ p('11',4,'https://www.w3schools.com/html/mov_bbb.mp4','LIVE: Twenty-minute morning flow.','Santa Monica, CA',840,'2.8K',34.019,-118.491,'live'),
+ p('12',5,'https://www.w3schools.com/html/mov_bbb.mp4','LIVE: Editing the final scene.','Downtown LA, CA',1120,'3.6K',34.040,-118.250,'live'),
  p('13',0,'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop','Found music around every corner.','Los Feliz, CA',1490,'11.2K',34.112,-118.285)
 ]
 export const products:Product[]=[
