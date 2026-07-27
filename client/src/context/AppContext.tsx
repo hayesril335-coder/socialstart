@@ -24,7 +24,11 @@ const readPublicPosts=()=>{
   try{
    const accountId=key.slice('socialstart-account-data-'.length),snapshot=JSON.parse(localStorage.getItem(key)||'{}') as Record<string,string>
    const accountPosts=JSON.parse(snapshot['socialstart-user-posts']||'[]') as Post[]
-   accountPosts.forEach(post=>{if(!combined.some(item=>item.id===post.id))combined.push({...post,ownerAccountId:post.ownerAccountId||accountId})})
+   accountPosts.forEach(post=>{
+    const found=combined.findIndex(item=>item.id===post.id)
+    if(found>=0&&!combined[found].ownerAccountId)combined[found]={...combined[found],ownerAccountId:post.ownerAccountId||accountId}
+    else if(found<0)combined.push({...post,ownerAccountId:post.ownerAccountId||accountId})
+   })
   }catch{/* Ignore an invalid saved account snapshot. */}
  }
  return combined
