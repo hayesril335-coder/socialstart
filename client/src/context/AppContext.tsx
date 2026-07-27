@@ -3,7 +3,7 @@ import type { Post } from '../types'
 
 export type CartItem = { id:string; title:string; price:number; image:string; quantity:number }
 type AppState = {
-  dark:boolean; setDark:(v:boolean)=>void; unread:number; points:number; pointsUsed:number; earnPoint:()=>void; creatorPoints:Record<string,number>; donatePoints:(username:string,amount:number)=>boolean; balance:number;
+  dark:boolean; setDark:(v:boolean)=>void; unread:number; points:number; pointsUsed:number; earnPoint:()=>void; creatorPoints:Record<string,number>; donatePoints:(username:string,amount:number)=>boolean; balance:number; addFunds:(amount:number)=>void; spendBalance:(amount:number)=>boolean;
   cart:CartItem[]; addToCart:(item:Omit<CartItem,'quantity'>,quantity?:number)=>void; updateCartQuantity:(id:string,quantity:number)=>void; clearCart:()=>void;
   userPosts:Post[]; addUserPost:(post:{title:string;image:string;mediaType?:'image'|'video'})=>void;
   savedPosts:Post[]; toggleSavedPost:(post:Post)=>void; isPostSaved:(id:string)=>boolean;
@@ -29,6 +29,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   const [lockedPosts,setLockedPosts]=useState<Record<string,number>>(()=>read('socialstart-locked-posts',{}))
   const [purchasedPostIds,setPurchasedPostIds]=useState<string[]>(()=>read('socialstart-purchased-posts',[]))
   const [pointsUsed,setPointsUsed]=useState(()=>read('socialstart-points-used',0))
+  const [balance,setBalance]=useState(()=>read('socialstart-balance',0))
   const setDark=(value:boolean)=>{setDarkState(value);localStorage.setItem('socialstart-theme',value?'dark':'light')}
   useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light'},[dark])
   useEffect(()=>persist('socialstart-cart',cart),[cart])
@@ -42,6 +43,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   useEffect(()=>persist('socialstart-locked-posts',lockedPosts),[lockedPosts])
   useEffect(()=>persist('socialstart-purchased-posts',purchasedPostIds),[purchasedPostIds])
   useEffect(()=>persist('socialstart-points-used',pointsUsed),[pointsUsed])
+  useEffect(()=>persist('socialstart-balance',balance),[balance])
 
   const addToCart=(item:Omit<CartItem,'quantity'>,quantity=1)=>setCart(current=>current.some(x=>x.id===item.id)?current.map(x=>x.id===item.id?{...x,quantity:Math.min(99,x.quantity+quantity)}:x):[...current,{...item,quantity}])
   const updateCartQuantity=(id:string,quantity:number)=>setCart(current=>quantity<=0?current.filter(x=>x.id!==id):current.map(x=>x.id===id?{...x,quantity:Math.min(99,quantity)}:x))
@@ -57,6 +59,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   const setPostPrice=(id:string,price:number)=>setLockedPosts(current=>({...current,[id]:price}))
   const unlockPost=(id:string)=>setLockedPosts(current=>{const next={...current};delete next[id];return next})
   const purchasePost=(id:string)=>setPurchasedPostIds(current=>current.includes(id)?current:[...current,id])
-  return <Context.Provider value={{dark,setDark,unread:0,points,pointsUsed,earnPoint:()=>setPoints(current=>current+1),creatorPoints,donatePoints,balance:0,cart,addToCart,updateCartQuantity,clearCart:()=>setCart([]),userPosts,addUserPost,savedPosts,toggleSavedPost,isPostSaved:id=>savedPosts.some(x=>x.id===id),likedPostIds,togglePostLike,followingUsernames,toggleFollow,viewPost,shareCount,recordShare,lockedPosts,setPostPrice,unlockPost,purchasedPostIds,purchasePost}}>{children}</Context.Provider>
+  const spendBalance=(amount:number)=>{if(amount<=0||amount>balance)return false;setBalance(current=>current-amount);return true}
+  return <Context.Provider value={{dark,setDark,unread:0,points,pointsUsed,earnPoint:()=>setPoints(current=>current+1),creatorPoints,donatePoints,balance,addFunds:amount=>setBalance(current=>current+Math.max(0,amount)),spendBalance,cart,addToCart,updateCartQuantity,clearCart:()=>setCart([]),userPosts,addUserPost,savedPosts,toggleSavedPost,isPostSaved:id=>savedPosts.some(x=>x.id===id),likedPostIds,togglePostLike,followingUsernames,toggleFollow,viewPost,shareCount,recordShare,lockedPosts,setPostPrice,unlockPost,purchasedPostIds,purchasePost}}>{children}</Context.Provider>
 }
 export const useApp=()=>{const value=useContext(Context);if(!value)throw new Error('AppProvider missing');return value}
