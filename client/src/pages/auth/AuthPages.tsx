@@ -23,7 +23,7 @@ const switchAccount=(accountId:string,profile:Record<string,string>)=>{
  }
  let savedProfile:Record<string,string>={}
  try{savedProfile=JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}')}catch{/* Start with clean profile settings. */}
- localStorage.setItem('socialstart-settings-profile',JSON.stringify({...savedProfile,...profile}))
+ localStorage.setItem('socialstart-settings-profile',JSON.stringify({...profile,...savedProfile}))
  localStorage.setItem('socialstart-active-account',accountId)
  localStorage.setItem('socialstart-authenticated','true')
 }

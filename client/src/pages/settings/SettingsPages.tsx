@@ -24,7 +24,22 @@ const readValues=(type:string)=>{try{return {...defaults[type],...JSON.parse(loc
 export function SettingsPage(){
  const {dark,setDark}=useApp(),navigate=useNavigate()
  const items=[['/settings/profile','Edit profile',UserRound],['/settings/account','Account details',LockKeyhole],['/settings/security','Security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/wallet','Wallet',WalletCards]] as const
- const logout=()=>{localStorage.removeItem('socialstart-authenticated');sessionStorage.clear();navigate('/login',{replace:true})}
+ const logout=()=>{
+  const accountId=localStorage.getItem('socialstart-active-account')
+  if(accountId){
+   const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account'])
+   const snapshot:Record<string,string>={}
+   for(let index=0;index<localStorage.length;index++){
+    const key=localStorage.key(index)
+    if(key?.startsWith('socialstart-')&&!globalKeys.has(key)&&!key.startsWith('socialstart-account-data-')){
+     const value=localStorage.getItem(key)
+     if(value!==null)snapshot[key]=value
+    }
+   }
+   try{localStorage.setItem(`socialstart-account-data-${accountId}`,JSON.stringify(snapshot))}catch{/* Live account data remains in local storage if a large snapshot cannot be copied. */}
+  }
+  localStorage.removeItem('socialstart-authenticated');sessionStorage.clear();navigate('/login',{replace:true})
+ }
  return <div className="settings-page"><p className="eyebrow">YOUR SPACE</p><h1>Settings</h1><section><p className="eyebrow">ACCOUNT</p>{items.map(([to,label,Icon])=><Link to={to} key={to}><Icon/><span>{label}</span><ChevronRight/></Link>)}</section><section><p className="eyebrow">PREFERENCES</p><button onClick={()=>setDark(!dark)}><Moon/><span>Dark mode</span><i className={dark?'switch on':'switch'}><i/></i></button></section><button className="logout" onClick={logout}><LogOut/> Log out</button></div>
 }
 
