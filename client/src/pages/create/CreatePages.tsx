@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext'
 import { moderateText, readVideoDuration, validateMediaFile } from '../../lib/moderation'
 import { uploadMedia } from '../../lib/mediaStorage'
 import { scheduleCloudSave } from '../../lib/cloudSync'
+import { VideoTestAd } from '../../components/VideoTestAd'
 
 const choices=[['/create/photo','Take picture',Camera,'Open your camera and capture the moment'],['/create/video','Take video',Video,'Open your camera and begin recording'],['/create/story','Add story',Repeat2,'Share a moment for 24 hours'],['/create/post','Create post',Image,'Upload a photo or video'],['/create/one-for-one','One For One',Upload,'Promote and earn Social Points'],['/create/live','Go live',Radio,'Broadcast to your community']] as const
 type Promo={title:string;media:string;mediaType:'image'|'video';views:number;author:string;username:string;avatar:string}
@@ -64,11 +65,15 @@ export function OneForOnePage(){
 }
 export function EarnPointsPage(){
  const {points,earnPoint}=useApp(),timer=useRef<ReturnType<typeof setInterval>|null>(null),available=otherPromos()
- const [progress,setProgress]=useState(0),[playing,setPlaying]=useState(false),[earned,setEarned]=useState(false),[videoNumber,setVideoNumber]=useState(1)
+ const adCountKey=`socialstart-promo-ad-count-${localStorage.getItem('socialstart-active-account')||'guest'}`,adSeenKey=`socialstart-promo-ad-seen-${localStorage.getItem('socialstart-active-account')||'guest'}`
+ const [progress,setProgress]=useState(0),[playing,setPlaying]=useState(false),[earned,setEarned]=useState(false),[videoNumber,setVideoNumber]=useState(1),[promosWatched,setPromosWatched]=useState(()=>Number(localStorage.getItem(adCountKey)||0)),[showAd,setShowAd]=useState(false)
+ const watchedRef=useRef(promosWatched)
  const selected=available.length?available[(videoNumber-1)%available.length]:null
  useEffect(()=>()=>{if(timer.current)clearInterval(timer.current)},[])
- const play=()=>{if(playing)return;setPlaying(true);setEarned(false);timer.current=setInterval(()=>setProgress(current=>{const next=current+10;if(next>=100){if(timer.current)clearInterval(timer.current);setPlaying(false);setEarned(true);earnPoint();if(selected){const updated={...selected.promo,views:selected.promo.views+1};localStorage.setItem(selected.key,JSON.stringify(updated))}return 100}return next}),300)}
- const next=()=>{setVideoNumber(current=>current+1);setProgress(0);setEarned(false)}
- return <div className="form-page centered"><p className="eyebrow">EARN SOCIAL POINTS · {points} EARNED</p><h1>Discover something new</h1><div className="promo-card">{selected?(selected.promo.mediaType==='video'?<video src={selected.promo.media} playsInline controls/>:<img src={selected.promo.media}/>):<img src={postsImage}/>} {!playing&&!earned&&<button onClick={play}>▶ Watch promo</button>}{earned&&<strong className="point-earned">✓ Point earned</strong>}<div><b>{selected?.promo.author||'Sunday Studio'} · Promo {videoNumber}</b><span>{selected?.promo.title||'Meet the makers behind every piece.'}</span></div></div><div className="progress"><i style={{width:`${progress}%`}}/></div><p>{progress}% complete · {earned?'Point added to your profile':'Keep this window active'}</p>{earned&&<button className="primary-btn" onClick={next}>Play Next</button>}</div>
+ const play=()=>{if(playing)return;setPlaying(true);setEarned(false);timer.current=setInterval(()=>setProgress(current=>{const next=current+10;if(next>=100){if(timer.current)clearInterval(timer.current);setPlaying(false);setEarned(true);earnPoint();const watched=watchedRef.current+1;watchedRef.current=watched;setPromosWatched(watched);localStorage.setItem(adCountKey,String(watched));if(selected){const updated={...selected.promo,views:selected.promo.views+1};localStorage.setItem(selected.key,JSON.stringify(updated))}return 100}return next}),300)}
+ const continueAfterAd=()=>{localStorage.setItem(adSeenKey,String(promosWatched));setShowAd(false);setVideoNumber(current=>current+1);setProgress(0);setEarned(false)}
+ const next=()=>{const adDue=promosWatched>0&&promosWatched%10===0&&Number(localStorage.getItem(adSeenKey)||0)!==promosWatched;if(adDue){setShowAd(true);return}setVideoNumber(current=>current+1);setProgress(0);setEarned(false)}
+ if(showAd)return <div className="form-page centered"><p className="eyebrow">ADVERTISEMENT BREAK</p><h1>A short break, then back to promos</h1><VideoTestAd placement="break" onComplete={continueAfterAd}/></div>
+ return <div className="form-page centered"><p className="eyebrow">EARN SOCIAL POINTS · {points} EARNED</p><h1>Discover something new</h1><div className="promo-card">{selected?(selected.promo.mediaType==='video'?<video src={selected.promo.media} playsInline controls/>:<img src={selected.promo.media}/>):<img src={postsImage}/>} {!playing&&!earned&&<button onClick={play}>▶ Watch promo</button>}{earned&&<strong className="point-earned">✓ Point earned</strong>}<div><b>{selected?.promo.author||'Sunday Studio'} · Promo {videoNumber}</b><span>{selected?.promo.title||'Meet the makers behind every piece.'}</span></div></div><div className="progress"><i style={{width:`${progress}%`}}/></div><p>{progress}% complete · {earned?'Point added to your profile':'Keep this window active'}</p>{earned&&<button className="primary-btn" onClick={next}>{promosWatched>0&&promosWatched%10===0?'Continue to ad':'Play Next'}</button>}</div>
 }
 const postsImage='https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=1000&auto=format&fit=crop'
