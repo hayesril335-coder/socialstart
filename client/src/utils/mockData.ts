@@ -10,6 +10,7 @@ export const profiles=[
  ,{name:'Iris Walker',username:'irispaints',avatar:'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop',bio:'Painter, color collector, and studio daydreamer.',location:'Highland Park, CA'}
  ,{name:'Jordan Ellis',username:'jordansound',avatar:'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop',bio:'Producer sharing sounds from the process.',location:'Culver City, CA'}
  ,{name:'Maya Ortiz',username:'mayagrows',avatar:'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&auto=format&fit=crop',bio:'Plants, gardens, and a slower way of living.',location:'Pasadena, CA'}
+ ,{name:'Avery Monroe',username:'averyafterdark',avatar:'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=300&auto=format&fit=crop',bio:'Monthly photo journals, creative process, and members-only stories.',location:'Brooklyn, NY',membershipPrice:7.99}
 ]
 export const stories=[
  {username:'sofiabell',image:'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200&auto=format&fit=crop',caption:'Last light in the neighborhood.'},
@@ -19,7 +20,7 @@ export const stories=[
  {username:'niainmotion',image:'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1200&auto=format&fit=crop',caption:'A little movement every day.'},
  {username:'lucafilm',image:'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200&auto=format&fit=crop',caption:'One frame from today.'}
 ]
-const p=(id:string,person:number,image:string,title:string,location:string,likes:number,views:string,lat:number,lng:number,mediaType:'image'|'video'|'live'='image'):Post=>({id,author:profiles[person].name,username:profiles[person].username,avatar:profiles[person].avatar,image,title,location,likes,views,followers:['42.1K','18.4K','67.3K','12.8K','31.5K','23.9K','15.7K','28.2K','19.6K'][person],following:false,approximateLatitude:lat,approximateLongitude:lng,mediaType})
+const p=(id:string,person:number,image:string,title:string,location:string,likes:number,views:string,lat:number,lng:number,mediaType:'image'|'video'|'live'='image'):Post=>({id,author:profiles[person].name,username:profiles[person].username,avatar:profiles[person].avatar,image,title,location,likes,views,followers:['42.1K','18.4K','67.3K','12.8K','31.5K','23.9K','15.7K','28.2K','19.6K','8.9K'][person],following:false,approximateLatitude:lat,approximateLongitude:lng,mediaType})
 export const posts:Post[]=[
  p('1',0,'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=1200&auto=format&fit=crop','Golden hour found me first.','Silver Lake, CA',2847,'18.2K',34.086,-118.270),
  p('2',1,'https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=1200&auto=format&fit=crop','A quiet corner, made by hand.','Portland, OR',1196,'9.8K',45.515,-122.678),
@@ -38,7 +39,12 @@ export const posts:Post[]=[
  {...p('15',7,'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&auto=format&fit=crop','An unreleased session from last night.','Culver City, CA',2240,'17.8K',34.021,-118.396),lockedPrice:4.99},
  {...p('16',8,'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1200&auto=format&fit=crop','My complete balcony garden tour.','Pasadena, CA',1310,'8.7K',34.148,-118.145),lockedPrice:1.99},
  {...p('17',6,'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1200&auto=format&fit=crop','The finished canvas reveal.','Highland Park, CA',2870,'21.1K',34.111,-118.192),lockedPrice:3.49},
- {...p('18',7,'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop','Private listening room: track one.','Culver City, CA',1780,'12.9K',34.021,-118.396),lockedPrice:2.49}
+ {...p('18',7,'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&auto=format&fit=crop','Private listening room: track one.','Culver City, CA',1780,'12.9K',34.021,-118.396),lockedPrice:2.49},
+ p('19',9,'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&auto=format&fit=crop','Members journal: the long way home.','Brooklyn, NY',945,'7.2K',40.678,-73.944),
+ p('20',9,'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&auto=format&fit=crop','Behind the scenes of this month’s project.','Brooklyn, NY',812,'6.1K',40.678,-73.944),
+ p('21',9,'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200&auto=format&fit=crop','A private night-photo collection.','Brooklyn, NY',1204,'9.3K',40.678,-73.944),
+ p('22',9,'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1200&auto=format&fit=crop','Sketchbook notes for members.','Brooklyn, NY',674,'5.4K',40.678,-73.944),
+ p('23',9,'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1200&auto=format&fit=crop','Monthly studio conversation.','Brooklyn, NY',1088,'8.8K',40.678,-73.944)
 ]
 export const products:Product[]=[
  {id:'p1',title:'Hand-thrown Oat Mug',price:38,image:'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=700&auto=format&fit=crop',stock:12},

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Bookmark, Grid3X3, MapPin, Moon, Store, X } from 'lucide-react'
+import { Bookmark, Crown, Grid3X3, MapPin, Moon, Store, X } from 'lucide-react'
 import { posts, profiles } from '../../utils/mockData'
 import { useApp } from '../../context/AppContext'
 import { PostCard } from '../../components/PostCard'
+import { activeMembershipFor, membershipPlanFor, purchaseMembership } from '../../lib/memberships'
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
@@ -22,7 +23,7 @@ export function ProfilePage(){
   ? {name:savedProfile.name||'Alex Morgan',user:savedProfile.username||'alexmorgan',avatar:savedProfile.avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',bio:savedProfile.bio||'Creative director, weekend wanderer, and believer in making the internet feel a little more human.',location:savedProfile.location||'Los Angeles, CA'}
   : cloudProfile?{name:cloudProfile.name||publicIdentity?.author||username||'SocialStart creator',user:cloudProfile.username||username||'',avatar:cloudProfile.avatar||publicIdentity?.avatar||'',bio:cloudProfile.bio||'Creating and sharing on SocialStart.',location:cloudProfile.location||publicIdentity?.location||''}
   : foundProfile?{name:foundProfile.name,user:foundProfile.username,avatar:foundProfile.avatar,bio:foundProfile.bio,location:foundProfile.location}:{name:publicIdentity?.author||username||'SocialStart creator',user:username||'',avatar:publicIdentity?.avatar||'',bio:'Creating and sharing on SocialStart.',location:publicIdentity?.location||''}
- const [tab,setTab]=useState('Posts'),[connectionModal,setConnectionModal]=useState<'Followers'|'Following'|null>(null)
+ const [tab,setTab]=useState('Posts'),[connectionModal,setConnectionModal]=useState<'Followers'|'Following'|null>(null),[membershipPurchased,setMembershipPurchased]=useState(false)
  const followerProfiles=own?[]:profiles.filter(item=>item.username!==profile.user).slice(0,3)
  const followingProfiles=own?profiles.filter(item=>followingUsernames.includes(item.username)):profiles.filter(item=>item.username!==profile.user).slice(2,5)
  const trackedPosts=own?userPosts:publicUserPosts
@@ -35,9 +36,10 @@ export function ProfilePage(){
  const visiblePosts=tab==='Saved'?savedPosts:userPosts
  const livePost=!own?posts.find(post=>post.username===profile.user&&post.mediaType==='live'):undefined
  const isOnline=own?true:cloudProfile?Date.now()-(cloudProfile.lastActiveAt||0)<150000:profile.user.length%2===0
+ const membership=membershipPlanFor(profile.user),hasMembership=membershipPurchased||Boolean(activeMembershipFor(profile.user))
 
  return <div className="profile-page">
-  <section className="profile-hero"><Link to={`/profile/${profile.user}/story`} className={`avatar-ring ${isOnline?'online':'offline'}`} aria-label={`View ${profile.name}'s story`}><img src={profile.avatar}/><i title={isOnline?'Online':'Offline'}/></Link><div className="profile-main"><p className="eyebrow">{profile.user}</p><h1>{profile.name}</h1><p className="bio">{profile.bio}</p><p className="location"><MapPin/> {profile.location}</p><div className="profile-buttons">{own?<><Link to="/settings/profile" className="primary-btn">Edit profile</Link><Link to={`/store/${profile.user}/manage`} className="secondary-btn"><Store/> Online store</Link></>:<><button onClick={()=>toggleFollow(profile.user)} className="primary-btn">{followingUsernames.includes(profile.user)?'Following':'Follow'}</button><Link to="/inbox/1" className="secondary-btn">Message</Link><Link to={`/store/${cloudProfile?.uid||profile.user}`} className="secondary-btn"><Store/> Online store</Link></>}</div></div></section>
+  <section className="profile-hero"><Link to={`/profile/${profile.user}/story`} className={`avatar-ring ${isOnline?'online':'offline'}`} aria-label={`View ${profile.name}'s story`}><img src={profile.avatar}/><i title={isOnline?'Online':'Offline'}/></Link><div className="profile-main"><p className="eyebrow">{profile.user}</p><h1>{profile.name}</h1><p className="bio">{profile.bio}</p><p className="location"><MapPin/> {profile.location}</p><div className="profile-buttons">{own?<><Link to="/settings/profile" className="primary-btn">Edit profile</Link><Link to={`/store/${profile.user}/manage`} className="secondary-btn"><Store/> Online store</Link><Link to="/membership/setup" className="secondary-btn"><Crown/> Create subscription</Link></>:<><button onClick={()=>toggleFollow(profile.user)} className="primary-btn">{followingUsernames.includes(profile.user)?'Following':'Follow'}</button><Link to={`/inbox/${profile.user}`} className="secondary-btn">Message</Link><Link to={`/store/${cloudProfile?.uid||profile.user}`} className="secondary-btn"><Store/> Online store</Link>{membership&&!hasMembership&&<button className="membership-purchase" onClick={()=>{purchaseMembership(profile.user,membership.price);setMembershipPurchased(true)}}><Crown/> Purchase Membership · ${membership.price.toFixed(2)}/month</button>}{membership&&hasMembership&&<span className="membership-active"><Crown/> Member · renews monthly</span>}</>}</div></div></section>
   <section className="stat-strip"><button onClick={()=>setConnectionModal('Followers')}><b>{stats[0]}</b><span>Followers</span></button><button onClick={()=>setConnectionModal('Following')}><b>{stats[1]}</b><span>Following</span></button><div><b>{stats[2]}</b><span>Total likes</span></div><div><b>{stats[3]}</b><span>Views</span></div>{own&&<><div><b>{points+(creatorPoints[profile.user]||0)}</b><span>Social points</span></div><div><b>{pointsUsed}</b><span>Points used</span></div><div><b>${balance.toFixed(2)}</b><span>Balance</span></div></>}</section>
   {!own&&<div className="creator-point-total"><b>{creatorPoints[profile.user]||0}</b><span> Social Points received</span></div>}
   {livePost&&<section className="profile-live"><p className="eyebrow">STREAMING LIVE NOW</p><PostCard post={livePost}/></section>}
