@@ -198,6 +198,27 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
   const snapshot = await getDoc(reference)
   if (snapshot.exists()) {
     const cloudState = snapshot.data().state
+    if (cloudState && typeof cloudState === 'object') {
+      const state = cloudState as Record<string, string>
+      try {
+        const savedProfile = JSON.parse(state['socialstart-settings-profile'] || '{}') as { username?: string }
+        if (savedProfile.username === 'socialstartmod' && user.email !== 'moderator@socialstart.app') {
+          const emailName = user.email?.split('@')[0] || user.uid.slice(0, 12)
+          state['socialstart-settings-profile'] = JSON.stringify({
+            name: user.displayName || emailName,
+            username: emailName.replace(/[^a-zA-Z0-9._]/g, ''),
+            email: user.email || '',
+            bio: 'Creating and sharing on SocialStart.',
+            location: '',
+            ...(user.photoURL ? { avatar: user.photoURL } : {}),
+          })
+          const balance = Number(JSON.parse(state['socialstart-balance'] || '0'))
+          const points = Number(JSON.parse(state['socialstart-points'] || '0'))
+          state['socialstart-balance'] = JSON.stringify(Math.max(0, balance - 1000))
+          state['socialstart-points'] = JSON.stringify(Math.max(0, points - 1000))
+        }
+      } catch { /* Leave a valid non-moderator account state unchanged. */ }
+    }
     const merged = mergeState(
       cloudState && typeof cloudState === 'object' ? cloudState as Record<string, string> : {},
       collectState(),

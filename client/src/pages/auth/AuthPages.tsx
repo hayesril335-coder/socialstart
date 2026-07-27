@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, updateProfile } from 'firebase/auth'
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth'
 import { auth } from '../../lib/firebase'
-import { prepareCloudAccount } from '../../lib/cloudSync'
+import { prepareCloudAccount, stopCloudSync } from '../../lib/cloudSync'
 
 const moderatorEmail='moderator@socialstart.app'
 const moderatorPassword='SocialStartMod2026!'
 const moderatorAccountId='socialstart-moderator-v2'
-const moderatorResetKeys=['socialstart-user-posts','socialstart-saved-posts','socialstart-liked-posts','socialstart-viewed-posts','socialstart-following','socialstart-cart','socialstart-locked-posts','socialstart-purchased-posts','socialstart-post-metrics','socialstart-membership-plans','socialstart-membership-purchases','socialstart-points-used']
+const moderatorResetKeys=['socialstart-settings-profile','socialstart-user-posts','socialstart-saved-posts','socialstart-liked-posts','socialstart-viewed-posts','socialstart-following','socialstart-cart','socialstart-locked-posts','socialstart-purchased-posts','socialstart-post-metrics','socialstart-membership-plans','socialstart-membership-purchases','socialstart-points','socialstart-points-used','socialstart-balance']
 
 const authMessage=(error:unknown)=>{
  const code=typeof error==='object'&&error&&'code' in error?String(error.code):''
@@ -43,6 +43,11 @@ export function AuthPage({signup=false}:{signup?:boolean}){
  const googleSignIn=async()=>{
  setBusy(true);setError('')
   try{
+   if(localStorage.getItem('socialstart-moderator-session')==='true'){
+    moderatorResetKeys.forEach(key=>localStorage.removeItem(key))
+    localStorage.removeItem('socialstart-moderator-session')
+    localStorage.removeItem('socialstart-active-account')
+   }
    const provider=new GoogleAuthProvider()
    provider.setCustomParameters({prompt:'select_account'})
    const result=await signInWithPopup(auth,provider)
@@ -58,6 +63,8 @@ export function AuthPage({signup=false}:{signup?:boolean}){
   try{
    const normalizedEmail=email.trim().toLowerCase()
    if(!signup&&normalizedEmail===moderatorEmail&&password===moderatorPassword){
+    stopCloudSync()
+    await signOut(auth)
     const snapshot=localStorage.getItem(`socialstart-account-data-${moderatorAccountId}`)
     moderatorResetKeys.forEach(key=>localStorage.removeItem(key))
     if(snapshot){
@@ -73,6 +80,11 @@ export function AuthPage({signup=false}:{signup?:boolean}){
     localStorage.setItem('socialstart-authenticated','true')
     window.location.replace('/search')
     return
+   }
+   if(localStorage.getItem('socialstart-moderator-session')==='true'){
+    moderatorResetKeys.forEach(key=>localStorage.removeItem(key))
+    localStorage.removeItem('socialstart-moderator-session')
+    localStorage.removeItem('socialstart-active-account')
    }
    const result=signup?await createUserWithEmailAndPassword(auth,normalizedEmail,password):await signInWithEmailAndPassword(auth,normalizedEmail,password)
    const profile=signup?{name:name.trim(),username:username.trim().replace(/^@/,''),email:normalizedEmail}:undefined

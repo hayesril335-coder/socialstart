@@ -36,10 +36,16 @@ export function SettingsPage(){
    keys.forEach(key=>{const value=localStorage.getItem(key);if(value!==null)snapshot[key]=value})
    localStorage.setItem('socialstart-account-data-socialstart-moderator-v2',JSON.stringify(snapshot))
   }
-  scheduleCloudSave()
-  await new Promise(resolve=>window.setTimeout(resolve,650))
+  if(!moderatorSession){
+   scheduleCloudSave()
+   await new Promise(resolve=>window.setTimeout(resolve,650))
+  }
   stopCloudSync()
   await signOut(auth)
+  if(moderatorSession){
+   const keys=['socialstart-settings-profile','socialstart-user-posts','socialstart-saved-posts','socialstart-liked-posts','socialstart-viewed-posts','socialstart-following','socialstart-cart','socialstart-locked-posts','socialstart-purchased-posts','socialstart-post-metrics','socialstart-membership-plans','socialstart-membership-purchases','socialstart-points','socialstart-points-used','socialstart-balance']
+   keys.forEach(key=>localStorage.removeItem(key))
+  }
   localStorage.removeItem('socialstart-authenticated');localStorage.removeItem('socialstart-active-account');localStorage.removeItem('socialstart-moderator-session');sessionStorage.clear();navigate('/login',{replace:true})
  }
  return <div className="settings-page"><p className="eyebrow">YOUR SPACE</p><h1>Settings</h1><section><p className="eyebrow">ACCOUNT</p>{items.map(([to,label,Icon])=><Link to={to} key={to}><Icon/><span>{label}</span><ChevronRight/></Link>)}</section><section><p className="eyebrow">PREFERENCES</p><button onClick={()=>setDark(!dark)}><Moon/><span>Dark mode</span><i className={dark?'switch on':'switch'}><i/></i></button></section><button className="logout" onClick={logout}><LogOut/> Log out</button></div>
