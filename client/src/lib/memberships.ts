@@ -24,6 +24,13 @@ export const saveMembershipPlan = (plan: MembershipPlan) => {
   scheduleCloudSave()
 }
 
+export const endMembershipPlan = (username: string) => {
+  const plans = read<Record<string, MembershipPlan>>(plansKey, {})
+  delete plans[username]
+  localStorage.setItem(plansKey, JSON.stringify(plans))
+  scheduleCloudSave()
+}
+
 export const activeMembershipFor = (username: string) => {
   const purchase = read<Record<string, MembershipPurchase>>(purchasesKey, {})[username]
   return purchase && purchase.renewsAt > Date.now() ? purchase : null
