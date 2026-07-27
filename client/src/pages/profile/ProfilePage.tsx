@@ -5,6 +5,7 @@ import { posts, profiles } from '../../utils/mockData'
 import { useApp } from '../../context/AppContext'
 import { PostCard } from '../../components/PostCard'
 import { activeMembershipFor, membershipPlanFor } from '../../lib/memberships'
+import { formatCount, formatCurrency } from '../../lib/format'
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
@@ -33,6 +34,7 @@ export function ProfilePage(){
  const followerCount=Object.values(followingByAccount).filter(following=>following.includes(profile.user)).length
  const followingCount=targetAccountId?(followingByAccount[targetAccountId]?.length||0):(own?followingUsernames.length:followingProfiles.length)
  const stats=own?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:cloudProfile?.stats?[String(cloudProfile.stats.followers||0),String(cloudProfile.stats.following||0),String(cloudProfile.stats.likes||0),String(cloudProfile.stats.views||0)]:publicIdentity?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:[String(followerProfiles.length),String(followingProfiles.length),'18.6K','94.2K']
+ const formattedStats=stats.map(formatCount)
  const visiblePosts=tab==='Saved'?savedPosts:userPosts
  const livePost=!own?posts.find(post=>post.username===profile.user&&post.mediaType==='live'):undefined
  const isOnline=own?true:cloudProfile?Date.now()-(cloudProfile.lastActiveAt||0)<150000:profile.user.length%2===0
@@ -40,8 +42,8 @@ export function ProfilePage(){
 
  return <div className="profile-page">
   <section className="profile-hero"><Link to={`/profile/${profile.user}/story`} className={`avatar-ring ${isOnline?'online':'offline'}`} aria-label={`View ${profile.name}'s story`}><img src={profile.avatar}/><i title={isOnline?'Online':'Offline'}/></Link><div className="profile-main"><p className="eyebrow">{profile.user}</p><h1>{profile.name}</h1><p className="bio">{profile.bio}</p><p className="location"><MapPin/> {profile.location}</p><div className="profile-buttons">{own?<><Link to="/settings/profile" className="primary-btn">Edit profile</Link><Link to={`/store/${profile.user}/manage`} className="secondary-btn"><Store/> Online store</Link><Link to="/membership/setup" className="secondary-btn"><Crown/> {membership?'Edit subscription':'Create subscription'}</Link></>:<><button onClick={()=>toggleFollow(profile.user)} className="primary-btn">{followingUsernames.includes(profile.user)?'Following':'Follow'}</button><Link to={`/inbox/${profile.user}`} className="secondary-btn">Message</Link><Link to={`/store/${cloudProfile?.uid||profile.user}`} className="secondary-btn"><Store/> Online store</Link>{membership&&!hasMembership&&<Link className="membership-purchase" to={`/membership/${profile.user}/checkout`}><Crown/> Purchase Membership · ${membership.price.toFixed(2)}/month</Link>}{membership&&hasMembership&&<span className="membership-active"><Crown/> Member · renews monthly</span>}</>}</div></div></section>
-  <section className="stat-strip"><button onClick={()=>setConnectionModal('Followers')}><b>{stats[0]}</b><span>Followers</span></button><button onClick={()=>setConnectionModal('Following')}><b>{stats[1]}</b><span>Following</span></button><div><b>{stats[2]}</b><span>Total likes</span></div><div><b>{stats[3]}</b><span>Views</span></div>{own&&<><div><b>{points+(creatorPoints[profile.user]||0)}</b><span>Social points</span></div><div><b>{pointsUsed}</b><span>Points used</span></div><div><b>${balance.toFixed(2)}</b><span>Balance</span></div></>}</section>
-  {!own&&<div className="creator-point-total"><b>{creatorPoints[profile.user]||0}</b><span> Social Points received</span></div>}
+  <section className="stat-strip"><button onClick={()=>setConnectionModal('Followers')}><b>{formattedStats[0]}</b><span>Followers</span></button><button onClick={()=>setConnectionModal('Following')}><b>{formattedStats[1]}</b><span>Following</span></button><div><b>{formattedStats[2]}</b><span>Total likes</span></div><div><b>{formattedStats[3]}</b><span>Views</span></div>{own&&<><div><b>{formatCount(points+(creatorPoints[profile.user]||0))}</b><span>Social points</span></div><div><b>{formatCount(pointsUsed)}</b><span>Points used</span></div><div><b>{formatCurrency(balance)}</b><span>Balance</span></div></>}</section>
+  {!own&&<div className="creator-point-total"><b>{formatCount(creatorPoints[profile.user]||0)}</b><span> Social Points received</span></div>}
   {livePost&&<section className="profile-live"><p className="eyebrow">STREAMING LIVE NOW</p><PostCard post={livePost}/></section>}
   {own&&<div className="theme-line hashtag-actions"><button type="button"><Hash/> Hashtags</button><button type="button"><Hash/> Created hashtags</button></div>}
   <div className="profile-tabs"><button className={tab==='Posts'?'active':''} onClick={()=>setTab('Posts')}><Grid3X3/> Posts</button>{own&&<button className={tab==='Saved'?'active':''} onClick={()=>setTab('Saved')}><Bookmark/> Saved</button>}</div>
