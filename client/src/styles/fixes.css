@@ -25,7 +25,7 @@
 .purchase-modal label input{display:block;width:100%;margin-top:7px;padding:13px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)}
 .modal-close{position:absolute;right:14px;top:14px;border:0;background:none}
 .modal-close svg{width:20px}
-.profile-post-feed{max-width:680px;margin:20px auto;display:grid;gap:24px}
+.profile-post-feed{max-width:1040px;margin:20px auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .post-actions>div{display:contents!important}
 .post-actions>button,.post-actions .post-action-link,.post-actions>div>button{flex:1;display:grid;place-items:center}
 .story-viewer{position:fixed;inset:0;z-index:200;background:#080707;color:white;display:grid;place-items:center;overflow:hidden}
@@ -38,3 +38,4 @@
 .story-progress{position:absolute;z-index:3;top:12px;left:12px;right:12px;height:3px;background:rgba(255,255,255,.3)}
 .story-progress i{display:block;height:100%;background:white;animation:story-progress 8s linear forwards}
 @keyframes story-progress{from{width:0}to{width:100%}}
+@media(max-width:760px){.profile-post-feed{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.profile-post-feed .post-owner,.profile-post-feed .post-actions,.profile-post-feed .post-copy{padding-inline:7px}.profile-post-feed .post-owner>div span,.profile-post-feed .post-owner>.plain{display:none}.profile-post-feed .follow{padding:6px;font-size:9px}}
