@@ -1,5 +1,40 @@
+import { useState, type FormEvent } from 'react'
 import { ChevronRight, CircleDollarSign, CreditCard, LockKeyhole, LogOut, MapPin, Moon, UserRound, WalletCards } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
-export function SettingsPage(){const {dark,setDark}=useApp();const items=[['/settings/profile','Edit profile',UserRound],['/settings/account','Account & security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/wallet','Wallet',WalletCards]] as const;return <div className="settings-page"><p className="eyebrow">YOUR SPACE</p><h1>Settings</h1><section><p className="eyebrow">ACCOUNT</p>{items.map(([to,label,Icon])=><Link to={to}><Icon/><span>{label}</span><ChevronRight/></Link>)}</section><section><p className="eyebrow">PREFERENCES</p><button onClick={()=>setDark(!dark)}><Moon/><span>Dark mode</span><i className={dark?'switch on':'switch'}><i/></i></button></section><button className="logout"><LogOut/> Log out</button></div>}
-export function SettingsDetailPage({type}:{type:string}){const {balance}=useApp();if(type==='Wallet')return <div className="form-page"><p className="eyebrow">SETTINGS / WALLET</p><h1>Your wallet</h1><div className="balance-card"><span>AVAILABLE BALANCE</span><b>${balance.toFixed(2)}</b><small>Ready to spend or tip</small></div><label className="field">Add funds<input type="number" placeholder="$0.00"/></label><button className="primary-btn wide"><CircleDollarSign/> Continue</button><h3>Recent activity</h3>{['Funds added','Tip to @sofiabell','Sunday Studio purchase'].map((x,i)=><div className="transaction"><span>{x}</span><b>{i===0?'+$100.00':i===1?'−$5.00':'−$38.00'}</b></div>)}</div>;return <div className="form-page"><p className="eyebrow">SETTINGS / {type.toUpperCase()}</p><h1>{type}</h1><label className="field">Name<input defaultValue="Alex Morgan"/></label><label className="field">Username<input defaultValue="alexmorgan"/></label><label className="field">About you<textarea defaultValue="Creative director, weekend wanderer, and believer in making the internet feel a little more human."/></label><button className="primary-btn">Save changes</button></div>}
+
+type Values=Record<string,string>
+const defaults:Record<string,Values>={
+ Profile:{name:'Alex Morgan',username:'alexmorgan',bio:'Creative director, weekend wanderer, and believer in making the internet feel a little more human.',location:'Los Angeles, CA'},
+ Account:{email:'alex@example.com',phone:'',password:''},
+ Security:{currentPassword:'',newPassword:'',confirmPassword:''},
+ Billing:{cardName:'',cardNumber:'',expiry:'',cvv:''},
+ Address:{street:'',city:'Los Angeles',region:'CA',postalCode:'',country:'United States'}
+}
+const labels:Record<string,Record<string,string>>={
+ Profile:{name:'Name',username:'Username',bio:'About you',location:'Location'},
+ Account:{email:'Email address',phone:'Phone number',password:'Password'},
+ Security:{currentPassword:'Current password',newPassword:'New password',confirmPassword:'Confirm new password'},
+ Billing:{cardName:'Name on card',cardNumber:'Card number',expiry:'Expiration date',cvv:'Security code'},
+ Address:{street:'Street address',city:'City',region:'State / region',postalCode:'Postal code',country:'Country'}
+}
+const storageKey=(type:string)=>`socialstart-settings-${type.toLowerCase()}`
+const readValues=(type:string)=>{try{return {...defaults[type],...JSON.parse(localStorage.getItem(storageKey(type))||'{}')}}catch{return defaults[type]}}
+
+export function SettingsPage(){
+ const {dark,setDark}=useApp(),navigate=useNavigate()
+ const items=[['/settings/profile','Edit profile',UserRound],['/settings/account','Account details',LockKeyhole],['/settings/security','Security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/wallet','Wallet',WalletCards]] as const
+ const logout=()=>{localStorage.removeItem('socialstart-authenticated');sessionStorage.clear();navigate('/login',{replace:true})}
+ return <div className="settings-page"><p className="eyebrow">YOUR SPACE</p><h1>Settings</h1><section><p className="eyebrow">ACCOUNT</p>{items.map(([to,label,Icon])=><Link to={to} key={to}><Icon/><span>{label}</span><ChevronRight/></Link>)}</section><section><p className="eyebrow">PREFERENCES</p><button onClick={()=>setDark(!dark)}><Moon/><span>Dark mode</span><i className={dark?'switch on':'switch'}><i/></i></button></section><button className="logout" onClick={logout}><LogOut/> Log out</button></div>
+}
+
+export function SettingsDetailPage({type}:{type:string}){
+ const {balance}=useApp()
+ const [values,setValues]=useState<Values>(()=>readValues(type)),[message,setMessage]=useState('')
+ if(type==='Wallet')return <div className="form-page"><p className="eyebrow">SETTINGS / WALLET</p><h1>Your wallet</h1><div className="balance-card"><span>AVAILABLE BALANCE</span><b>${balance.toFixed(2)}</b><small>Ready to spend or tip</small></div><label className="field">Add funds<input type="number" min="1" placeholder="$0.00"/></label><button className="primary-btn wide" onClick={()=>setMessage('Add-funds setup is ready for a payment provider.')}><CircleDollarSign/> Continue</button>{message&&<p className="save-success">{message}</p>}<h3>Recent activity</h3><div className="profile-empty"><p>No wallet activity yet.</p></div></div>
+ const submit=(event:FormEvent)=>{event.preventDefault();if(type==='Security'&&values.newPassword!==values.confirmPassword){setMessage('New passwords do not match.');return}localStorage.setItem(storageKey(type),JSON.stringify(values));if(type==='Profile')window.dispatchEvent(new Event('socialstart-profile-updated'));setMessage(`${type} changes saved.`)}
+ return <form className="form-page" onSubmit={submit}><p className="eyebrow">SETTINGS / {type.toUpperCase()}</p><h1>{type==='Address'?'Addresses':type}</h1>
+  {Object.entries(values).map(([key,value])=><label className="field" key={key}>{labels[type]?.[key]||key}{key==='bio'?<textarea value={value} onChange={e=>setValues({...values,[key]:e.target.value})}/>:<input value={value} required={key!=='phone'} type={key.toLowerCase().includes('password')||key==='cvv'?'password':key==='email'?'email':'text'} autoComplete="off" onChange={e=>setValues({...values,[key]:e.target.value})}/>}</label>)}
+  <button className="primary-btn settings-save" type="submit">Save changes</button>{message&&<p className={message.includes('match')?'camera-error':'save-success'}>{message}</p>}
+ </form>
+}

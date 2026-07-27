@@ -16,14 +16,15 @@ const distanceMiles=(from:Coordinates,latitude?:number,longitude?:number)=>{
 
 export function SearchPage(){
  const {followingUsernames,userPosts}=useApp()
- const [feed,setFeed]=useState('Popular'),[query,setQuery]=useState(''),[coordinates,setCoordinates]=useState<Coordinates|null>(null),[locationStatus,setLocationStatus]=useState('')
+ const cachedLocation=()=>{try{return JSON.parse(localStorage.getItem('socialstart-location')||'null') as Coordinates|null}catch{return null}}
+ const [feed,setFeed]=useState('Popular'),[query,setQuery]=useState(''),[coordinates,setCoordinates]=useState<Coordinates|null>(cachedLocation),[locationStatus,setLocationStatus]=useState('')
  const selectFeed=(next:string)=>{
   setFeed(next)
   if(next==='Nearby'&&!coordinates){
    if(!navigator.geolocation){setLocationStatus('Location is unavailable on this device.');return}
    setLocationStatus('Finding posts near you…')
    navigator.geolocation.getCurrentPosition(
-    position=>{setCoordinates({latitude:position.coords.latitude,longitude:position.coords.longitude});setLocationStatus('Sorted using your current location.')},
+    position=>{const next={latitude:position.coords.latitude,longitude:position.coords.longitude};setCoordinates(next);localStorage.setItem('socialstart-location',JSON.stringify(next));setLocationStatus('Sorted using your current location.')},
     ()=>setLocationStatus('Allow location access to sort posts nearest to you.'),
     {enableHighAccuracy:false,timeout:10000,maximumAge:300000}
    )

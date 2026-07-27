@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Bookmark, Grid3X3, MapPin, Moon, Store } from 'lucide-react'
 import { posts } from '../../utils/mockData'
@@ -6,8 +6,11 @@ import { useApp } from '../../context/AppContext'
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
+ const readOwnProfile=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}')}catch{return {}}}
+ const [savedProfile,setSavedProfile]=useState<Record<string,string>>(readOwnProfile)
+ useEffect(()=>{const update=()=>setSavedProfile(readOwnProfile());window.addEventListener('socialstart-profile-updated',update);return()=>window.removeEventListener('socialstart-profile-updated',update)},[])
  const profile=own
-  ? {name:'Alex Morgan',user:'alexmorgan',avatar:'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',bio:'Creative director, weekend wanderer, and believer in making the internet feel a little more human.',location:'Los Angeles, CA'}
+  ? {name:savedProfile.name||'Alex Morgan',user:savedProfile.username||'alexmorgan',avatar:'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',bio:savedProfile.bio||'Creative director, weekend wanderer, and believer in making the internet feel a little more human.',location:savedProfile.location||'Los Angeles, CA'}
   : {name:'Sofia Bell',user:'sofiabell',avatar:posts[0].avatar,bio:'Light chaser. Storyteller. Taking the scenic route, always.',location:'Silver Lake, CA'}
  const {dark,setDark,balance,points,userPosts,savedPosts,likedPostIds,followingUsernames,toggleFollow,shareCount}=useApp()
  const [tab,setTab]=useState('Posts')
