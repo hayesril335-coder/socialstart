@@ -7,7 +7,7 @@ import { PostCard } from '../../components/PostCard'
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
- const {dark,setDark,balance,points,pointsUsed,creatorPoints,userPosts,publicPosts,savedPosts,likedPostIds,followingUsernames,toggleFollow}=useApp()
+ const {dark,setDark,balance,points,pointsUsed,creatorPoints,postMetrics,userPosts,publicPosts,savedPosts,followingUsernames,toggleFollow}=useApp()
  const readOwnProfile=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}')}catch{return {}}}
  const [savedProfile,setSavedProfile]=useState<Record<string,string>>(readOwnProfile)
  useEffect(()=>{const update=()=>setSavedProfile(readOwnProfile());window.addEventListener('socialstart-profile-updated',update);return()=>window.removeEventListener('socialstart-profile-updated',update)},[])
@@ -20,15 +20,15 @@ export function ProfilePage(){
  const [tab,setTab]=useState('Posts'),[connectionModal,setConnectionModal]=useState<'Followers'|'Following'|null>(null)
  const followerProfiles=own?[]:profiles.filter(item=>item.username!==profile.user).slice(0,3)
  const followingProfiles=own?profiles.filter(item=>followingUsernames.includes(item.username)):profiles.filter(item=>item.username!==profile.user).slice(2,5)
- const totalLikes=userPosts.reduce((total,post)=>total+post.likes+(likedPostIds.includes(post.id)?1:0),0)
- const totalViews=userPosts.reduce((total,post)=>total+Number(post.views),0)
+ const totalLikes=userPosts.reduce((total,post)=>total+post.likes+(postMetrics[post.id]?.likes||0),0)
+ const totalViews=userPosts.reduce((total,post)=>total+(Number(post.views)||0)+(postMetrics[post.id]?.views||0),0)
  const stats=own?[String(followerProfiles.length),String(followingProfiles.length),String(totalLikes),String(totalViews)]:[String(followerProfiles.length),String(followingProfiles.length),'18.6K','94.2K']
  const visiblePosts=tab==='Saved'?savedPosts:userPosts
  const livePost=!own?posts.find(post=>post.username===profile.user&&post.mediaType==='live'):undefined
 
  return <div className="profile-page">
   <section className="profile-hero"><Link to={`/profile/${profile.user}/story`} className="avatar-ring" aria-label={`View ${profile.name}'s story`}><img src={profile.avatar}/><i/></Link><div className="profile-main"><p className="eyebrow">{profile.user}</p><h1>{profile.name}</h1><p className="bio">{profile.bio}</p><p className="location"><MapPin/> {profile.location}</p><div className="profile-buttons">{own?<><Link to="/settings/profile" className="primary-btn">Edit profile</Link><Link to={`/store/${profile.user}/manage`} className="secondary-btn"><Store/> Online store</Link></>:<><button onClick={()=>toggleFollow(profile.user)} className="primary-btn">{followingUsernames.includes(profile.user)?'Following':'Follow'}</button><Link to="/inbox/1" className="secondary-btn">Message</Link><Link to={`/store/${profile.user}`} className="secondary-btn"><Store/> Online store</Link></>}</div></div></section>
-  <section className="stat-strip"><button onClick={()=>setConnectionModal('Followers')}><b>{stats[0]}</b><span>Followers</span></button><button onClick={()=>setConnectionModal('Following')}><b>{stats[1]}</b><span>Following</span></button><div><b>{stats[2]}</b><span>Total likes</span></div><div><b>{stats[3]}</b><span>Views</span></div>{own&&<><div><b>{points}</b><span>Social points</span></div><div><b>{pointsUsed}</b><span>Points used</span></div><div><b>${balance.toFixed(2)}</b><span>Balance</span></div></>}</section>
+  <section className="stat-strip"><button onClick={()=>setConnectionModal('Followers')}><b>{stats[0]}</b><span>Followers</span></button><button onClick={()=>setConnectionModal('Following')}><b>{stats[1]}</b><span>Following</span></button><div><b>{stats[2]}</b><span>Total likes</span></div><div><b>{stats[3]}</b><span>Views</span></div>{own&&<><div><b>{points+(creatorPoints[profile.user]||0)}</b><span>Social points</span></div><div><b>{pointsUsed}</b><span>Points used</span></div><div><b>${balance.toFixed(2)}</b><span>Balance</span></div></>}</section>
   {!own&&<div className="creator-point-total"><b>{creatorPoints[profile.user]||0}</b><span> Social Points received</span></div>}
   {livePost&&<section className="profile-live"><p className="eyebrow">STREAMING LIVE NOW</p><PostCard post={livePost}/></section>}
   {own&&<div className="theme-line"><span><Moon/> Appearance</span><button className={dark?'switch on':'switch'} onClick={()=>setDark(!dark)}><i/></button></div>}
