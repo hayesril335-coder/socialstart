@@ -55,3 +55,7 @@
 .market-grid>a>div{padding:13px;display:grid;gap:5px}
 .market-grid small,.market-grid span{color:var(--muted);font-size:10px}
 @media(max-width:760px){.market-grid{grid-template-columns:repeat(2,1fr);padding:0 14px;gap:10px}.feed-tabs{flex-wrap:wrap}}
+.stat-strip{align-items:stretch}
+.stat-strip>div,.stat-strip>button{flex:1;min-width:92px;min-height:58px;padding:0 12px;margin:0;display:grid;grid-template-rows:30px 18px;align-content:center;justify-items:center}
+.stat-strip>div b,.stat-strip>button b{line-height:30px;margin:0}
+.stat-strip>div span,.stat-strip>button span{line-height:18px;white-space:nowrap}

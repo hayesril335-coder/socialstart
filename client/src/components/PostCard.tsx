@@ -10,7 +10,7 @@ export function PostCard({post,ownerView=false}:{post:Post;ownerView?:boolean}){
  const readOwnAvatar=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}').avatar as string||''}catch{return ''}}
  const [ownAvatar,setOwnAvatar]=useState(readOwnAvatar)
  useEffect(()=>{const update=()=>setOwnAvatar(readOwnAvatar());window.addEventListener('socialstart-profile-updated',update);return()=>window.removeEventListener('socialstart-profile-updated',update)},[])
- const liked=likedPostIds.includes(post.id),saved=isPostSaved(post.id),following=followingUsernames.includes(post.username),lockedPrice=lockedPosts[post.id],accessible=ownerView||!lockedPrice||purchasedPostIds.includes(post.id)
+ const liked=likedPostIds.includes(post.id),saved=isPostSaved(post.id),following=followingUsernames.includes(post.username),lockedPrice=lockedPosts[post.id]??post.lockedPrice,accessible=ownerView||!lockedPrice||purchasedPostIds.includes(post.id)
  const displayAvatar=post.username==='alexmorgan'&&ownAvatar?ownAvatar:post.avatar
  const share=async()=>{const url=`${window.location.origin}/post/${post.id}`;try{if(navigator.share)await navigator.share({title:post.title,text:`See ${post.author}'s post on SocialStart`,url});else await navigator.clipboard.writeText(url);recordShare();setShared(true);window.setTimeout(()=>setShared(false),2200)}catch{/* User cancelled sharing. */}}
  const media=post.mediaType==='video'||post.mediaType==='live'?<video src={post.image} controls={fullscreen||post.mediaType==='live'} autoPlay loop muted playsInline onClick={event=>{event.currentTarget.muted=false;void event.currentTarget.play()}}/>:<img src={post.image} alt={post.title}/>
