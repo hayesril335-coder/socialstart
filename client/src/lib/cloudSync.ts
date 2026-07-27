@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore'
 import type { User } from 'firebase/auth'
 import { db } from './firebase'
 
@@ -92,6 +92,62 @@ const applyState = (state: Record<string, string>) => {
   })
 }
 
+const readJson = <T,>(key: string, fallback: T): T => {
+  try { return JSON.parse(localStorage.getItem(key) || '') as T } catch { return fallback }
+}
+
+const syncSharedData = async (user: User) => {
+  const profile = readJson<Record<string, string>>('socialstart-settings-profile', {})
+  await setDoc(doc(db, 'publicProfiles', user.uid), {
+    ...profile,
+    uid: user.uid,
+    email: user.email || '',
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+
+  const storeKey = `socialstart-account-store-${user.uid}`
+  const store = readJson<Record<string, unknown>>(storeKey, {})
+  if (Object.keys(store).length) {
+    await setDoc(doc(db, 'stores', user.uid), { ...store, ownerId: user.uid, updatedAt: serverTimestamp() }, { merge: true })
+  }
+
+  const ownPosts = readJson<Array<Record<string, unknown>>>('socialstart-user-posts', [])
+  await Promise.all(ownPosts.map(async post => {
+    const payload = { ...post, ownerAccountId: user.uid, ownerId: user.uid, updatedAt: serverTimestamp() }
+    // Firestore has a 1 MiB per-document limit. Normal photos fit; very large
+    // camera videos remain local until Firebase Storage is enabled.
+    if (JSON.stringify(payload).length < 850_000 && typeof post.id === 'string') {
+      await setDoc(doc(db, 'posts', post.id), payload, { merge: true })
+    }
+  }))
+
+  const commentWrites: Promise<void>[] = []
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index)
+    if (!key?.startsWith('socialstart-comments-')) continue
+    const postId = key.slice('socialstart-comments-'.length)
+    const comments = readJson<unknown[]>(key, [])
+    commentWrites.push(setDoc(doc(db, 'comments', postId), { comments, updatedAt: serverTimestamp() }, { merge: true }))
+  }
+  await Promise.all(commentWrites)
+}
+
+const loadSharedData = async () => {
+  const [postResults, storeResults, profileResults, commentResults] = await Promise.all([
+    getDocs(collection(db, 'posts')),
+    getDocs(collection(db, 'stores')),
+    getDocs(collection(db, 'publicProfiles')),
+    getDocs(collection(db, 'comments')),
+  ])
+  const localPosts = readJson<Array<Record<string, unknown>>>('socialstart-public-posts', [])
+  const postsById = new Map(localPosts.map(post => [String(post.id), post]))
+  postResults.forEach(result => postsById.set(result.id, { ...result.data(), id: result.id }))
+  localStorage.setItem('socialstart-public-posts', JSON.stringify([...postsById.values()]))
+  storeResults.forEach(result => localStorage.setItem(`socialstart-account-store-${result.id}`, JSON.stringify(result.data())))
+  profileResults.forEach(result => localStorage.setItem(`socialstart-public-profile-${result.id}`, JSON.stringify(result.data())))
+  commentResults.forEach(result => localStorage.setItem(`socialstart-comments-${result.id}`, JSON.stringify(result.data().comments || [])))
+}
+
 export async function prepareCloudAccount(user: User, profile?: Record<string, string>) {
   cloudUser = user
   const previousAccountId = localStorage.getItem('socialstart-active-account') || restoreLegacySnapshot(user)
@@ -123,6 +179,8 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
   }
   localStorage.setItem('socialstart-active-account', user.uid)
   localStorage.setItem('socialstart-authenticated', 'true')
+  await syncSharedData(user)
+  await loadSharedData()
   ready = true
 }
 
@@ -131,11 +189,12 @@ export function scheduleCloudSave() {
   window.clearTimeout(saveTimer)
   saveTimer = window.setTimeout(() => {
     if (!cloudUser) return
-    void setDoc(doc(db, 'users', cloudUser.uid), {
+    void Promise.all([setDoc(doc(db, 'users', cloudUser.uid), {
       state: collectState(),
       email: cloudUser.email || '',
       updatedAt: serverTimestamp(),
-    }, { merge: true }).catch(error => console.error('SocialStart cloud sync failed', error))
+    }, { merge: true }), syncSharedData(cloudUser)])
+      .catch(error => console.error('SocialStart cloud sync failed', error))
   }, 500)
 }
 

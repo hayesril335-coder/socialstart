@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { PostCard } from '../../components/PostCard'
 import { useApp } from '../../context/AppContext'
+import { scheduleCloudSave } from '../../lib/cloudSync'
 import { posts } from '../../utils/mockData'
 export function PostDetailsPage(){
  const {postId,username}=useParams(),{userPosts,publicPosts}=useApp(),post=[...userPosts,...publicPosts,...posts].find(p=>postId?p.id===postId:p.username===username&&p.mediaType!=='live'),commentKey=`socialstart-comments-${post?.id||'missing'}`
  const [comments,setComments]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem(commentKey)||'[]')}catch{return []}}),[text,setText]=useState('')
  const readAvatar=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}').avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=100&auto=format&fit=crop'}catch{return 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=100&auto=format&fit=crop'}}
  const [commentAvatar,setCommentAvatar]=useState(readAvatar)
- useEffect(()=>{localStorage.setItem(commentKey,JSON.stringify(comments))},[commentKey,comments])
+ useEffect(()=>{localStorage.setItem(commentKey,JSON.stringify(comments));scheduleCloudSave()},[commentKey,comments])
  useEffect(()=>{const update=()=>setCommentAvatar(readAvatar());window.addEventListener('socialstart-profile-updated',update);return()=>window.removeEventListener('socialstart-profile-updated',update)},[])
  const submit=()=>{const comment=text.trim();if(!comment)return;setComments(current=>[...current,comment]);setText('')}
  if(!post)return <div className="narrow-page"><div className="profile-empty"><h3>Post not found</h3><p>This post may no longer be available.</p></div></div>
