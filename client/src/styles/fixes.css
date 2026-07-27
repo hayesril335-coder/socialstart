@@ -69,3 +69,5 @@
 .card-checkout label{margin:0}
 .card-checkout button{margin-top:6px}
 .comments>div>img{width:36px!important;height:36px!important;min-width:36px;aspect-ratio:1;object-fit:cover}
+.bottom-nav i,.conversation-list aside>i{background:#e73578!important}
+.conversation-list aside>i{min-width:18px;width:auto!important;padding:0 5px}
