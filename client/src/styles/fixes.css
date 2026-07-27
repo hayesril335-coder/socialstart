@@ -120,5 +120,8 @@
 .live-source-picker button{min-height:45px;padding:0 20px;border:1px solid var(--line);border-radius:11px;background:var(--paper);display:flex;align-items:center;gap:8px;font-weight:700}
 .live-source-picker button.active{background:var(--wine);border-color:var(--wine);color:#fff}
 .live-source-picker svg{width:18px}
+.store-hero,.store-hero h1,.store-hero p,.real-store{min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+.store-page{overflow-x:hidden}
+.chat-safety-error{margin:4px 12px!important;padding:10px 12px!important;width:auto!important;max-width:none!important;background:#fff0f1!important;border:1px solid #e6a1a8!important;color:#9b2635!important;border-radius:10px!important;font-size:12px!important}
 .public-store-banner{min-height:340px;background-size:cover!important;background-position:center!important;color:white}
 .public-store-banner .eyebrow,.public-store-banner>p:not(.eyebrow){color:white!important}
