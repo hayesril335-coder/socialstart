@@ -20,9 +20,11 @@ const authMessage=(error:unknown)=>{
 export function AuthPage({signup=false}:{signup?:boolean}){
  const [show,setShow]=useState(false),[name,setName]=useState(''),[username,setUsername]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false)
  const googleSignIn=async()=>{
-  setBusy(true);setError('')
+ setBusy(true);setError('')
   try{
-   const result=await signInWithPopup(auth,new GoogleAuthProvider())
+   const provider=new GoogleAuthProvider()
+   provider.setCustomParameters({prompt:'select_account'})
+   const result=await signInWithPopup(auth,provider)
    const googleName=result.user.displayName||result.user.email?.split('@')[0]||'SocialStart user'
    const googleUsername=(result.user.email?.split('@')[0]||result.user.uid.slice(0,12)).replace(/[^a-zA-Z0-9._]/g,'')
    await prepareCloudAccount(result.user,{name:googleName,username:googleUsername,email:result.user.email||'',...(result.user.photoURL?{avatar:result.user.photoURL}:{})})

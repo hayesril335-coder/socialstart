@@ -55,6 +55,33 @@ const mergeState = (cloud: Record<string, string>, local: Record<string, string>
   return merged
 }
 
+const restoreLegacySnapshot = (user: User) => {
+  const email = user.email?.trim().toLowerCase()
+  if (!email) return null
+  let best: { accountId: string; state: Record<string, string>; score: number } | null = null
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index)
+    if (!key?.startsWith('socialstart-account-data-')) continue
+    try {
+      const state = JSON.parse(localStorage.getItem(key) || '{}') as Record<string, string>
+      const profile = JSON.parse(state['socialstart-settings-profile'] || '{}') as { email?: string }
+      if (profile.email?.trim().toLowerCase() !== email) continue
+      const score = Object.values(state).reduce((total, value) => total + valueScore(value), 0)
+      if (!best || score > best.score) best = {
+        accountId: key.slice('socialstart-account-data-'.length),
+        state,
+        score,
+      }
+    } catch { /* Ignore damaged legacy snapshots. */ }
+  }
+  if (!best) return null
+  const merged = mergeState(collectState(), best.state)
+  Object.entries(merged).forEach(([key, value]) => {
+    if (isSyncableKey(key)) localStorage.setItem(key, value)
+  })
+  return best.accountId
+}
+
 const applyState = (state: Record<string, string>) => {
   const currentKeys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index))
   currentKeys.forEach(key => {
@@ -67,7 +94,7 @@ const applyState = (state: Record<string, string>) => {
 
 export async function prepareCloudAccount(user: User, profile?: Record<string, string>) {
   cloudUser = user
-  const previousAccountId = localStorage.getItem('socialstart-active-account')
+  const previousAccountId = localStorage.getItem('socialstart-active-account') || restoreLegacySnapshot(user)
   if (previousAccountId && previousAccountId !== user.uid) {
     for (const section of ['store', 'promo']) {
       const oldKey = `socialstart-account-${section}-${previousAccountId}`
