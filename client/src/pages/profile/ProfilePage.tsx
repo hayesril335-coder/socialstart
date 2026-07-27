@@ -7,7 +7,7 @@ import { PostCard } from '../../components/PostCard'
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
- const {dark,setDark,balance,points,pointsUsed,creatorPoints,postMetrics,userPosts,publicPosts,savedPosts,followingUsernames,toggleFollow}=useApp()
+ const {dark,setDark,balance,points,pointsUsed,creatorPoints,postMetrics,userPosts,publicPosts,savedPosts,followingUsernames,followingByAccount,toggleFollow}=useApp()
  const readOwnProfile=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}')}catch{return {}}}
  const [savedProfile,setSavedProfile]=useState<Record<string,string>>(readOwnProfile)
  useEffect(()=>{const update=()=>setSavedProfile(readOwnProfile());window.addEventListener('socialstart-profile-updated',update);return()=>window.removeEventListener('socialstart-profile-updated',update)},[])
@@ -20,9 +20,13 @@ export function ProfilePage(){
  const [tab,setTab]=useState('Posts'),[connectionModal,setConnectionModal]=useState<'Followers'|'Following'|null>(null)
  const followerProfiles=own?[]:profiles.filter(item=>item.username!==profile.user).slice(0,3)
  const followingProfiles=own?profiles.filter(item=>followingUsernames.includes(item.username)):profiles.filter(item=>item.username!==profile.user).slice(2,5)
- const totalLikes=userPosts.reduce((total,post)=>total+post.likes+(postMetrics[post.id]?.likes||0),0)
- const totalViews=userPosts.reduce((total,post)=>total+(Number(post.views)||0)+(postMetrics[post.id]?.views||0),0)
- const stats=own?[String(followerProfiles.length),String(followingProfiles.length),String(totalLikes),String(totalViews)]:[String(followerProfiles.length),String(followingProfiles.length),'18.6K','94.2K']
+ const trackedPosts=own?userPosts:publicUserPosts
+ const totalLikes=trackedPosts.reduce((total,post)=>total+post.likes+(postMetrics[post.id]?.likes||0),0)
+ const totalViews=trackedPosts.reduce((total,post)=>total+(Number(post.views)||0)+(postMetrics[post.id]?.views||0),0)
+ const targetAccountId=own?localStorage.getItem('socialstart-active-account'):publicIdentity?.ownerAccountId
+ const followerCount=Object.values(followingByAccount).filter(following=>following.includes(profile.user)).length
+ const followingCount=targetAccountId?(followingByAccount[targetAccountId]?.length||0):(own?followingUsernames.length:followingProfiles.length)
+ const stats=own||publicIdentity?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:[String(followerProfiles.length),String(followingProfiles.length),'18.6K','94.2K']
  const visiblePosts=tab==='Saved'?savedPosts:userPosts
  const livePost=!own?posts.find(post=>post.username===profile.user&&post.mediaType==='live'):undefined
 

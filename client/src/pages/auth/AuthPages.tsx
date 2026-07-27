@@ -13,7 +13,7 @@ const readGoogleClaims=(credential:string):GoogleClaims=>{
  const bytes=Uint8Array.from(atob(base64),character=>character.charCodeAt(0))
  return JSON.parse(new TextDecoder().decode(bytes))
 }
-const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account','socialstart-public-posts','socialstart-post-metrics','socialstart-global-creator-points'])
+const globalKeys=new Set(['socialstart-account','socialstart-accounts','socialstart-authenticated','socialstart-active-account','socialstart-public-posts','socialstart-post-metrics','socialstart-global-creator-points','socialstart-global-follow-graph'])
 const isAccountDataKey=(key:string)=>key.startsWith('socialstart-')&&!globalKeys.has(key)&&!key.startsWith('socialstart-account-data-')&&!key.startsWith('socialstart-account-store-')&&!key.startsWith('socialstart-account-promo-')
 const switchAccount=(accountId:string,profile:Record<string,string>)=>{
  const previous=localStorage.getItem('socialstart-active-account')

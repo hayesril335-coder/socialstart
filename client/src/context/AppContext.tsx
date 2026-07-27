@@ -8,7 +8,7 @@ type AppState = {
   cart:CartItem[]; addToCart:(item:Omit<CartItem,'quantity'>,quantity?:number)=>void; updateCartQuantity:(id:string,quantity:number)=>void; clearCart:()=>void;
   userPosts:Post[]; publicPosts:Post[]; addUserPost:(post:{title:string;image:string;mediaType?:'image'|'video'})=>void;
   savedPosts:Post[]; toggleSavedPost:(post:Post)=>void; isPostSaved:(id:string)=>boolean;
-  likedPostIds:string[]; togglePostLike:(id:string)=>void; followingUsernames:string[]; toggleFollow:(username:string)=>void;
+  likedPostIds:string[]; togglePostLike:(id:string)=>void; followingUsernames:string[]; followingByAccount:Record<string,string[]>; toggleFollow:(username:string)=>void;
   viewPost:(id:string)=>void; shareCount:number; recordShare:()=>void;
   lockedPosts:Record<string,number>; setPostPrice:(id:string,price:number)=>void; unlockPost:(id:string)=>void; purchasedPostIds:string[]; purchasePost:(id:string)=>void;
 }
@@ -40,6 +40,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   const [viewedPostIds,setViewedPostIds]=useState<string[]>(()=>read('socialstart-viewed-posts',[]))
   const [postMetrics,setPostMetrics]=useState<Record<string,PostMetric>>(()=>read('socialstart-post-metrics',{}))
   const [followingUsernames,setFollowingUsernames]=useState<string[]>(()=>read('socialstart-following',[]))
+  const [followingByAccount,setFollowingByAccount]=useState<Record<string,string[]>>(()=>read('socialstart-global-follow-graph',{}))
   const [shareCount,setShareCount]=useState(()=>read('socialstart-shares',0))
   const [points,setPoints]=useState(()=>read('socialstart-points',0))
   const [creatorPoints,setCreatorPoints]=useState<Record<string,number>>(()=>read('socialstart-global-creator-points',{}))
@@ -66,6 +67,8 @@ export function AppProvider({children}:{children:ReactNode}) {
   useEffect(()=>persist('socialstart-viewed-posts',viewedPostIds),[viewedPostIds])
   useEffect(()=>persist('socialstart-post-metrics',postMetrics),[postMetrics])
   useEffect(()=>persist('socialstart-following',followingUsernames),[followingUsernames])
+  useEffect(()=>persist('socialstart-global-follow-graph',followingByAccount),[followingByAccount])
+  useEffect(()=>{const accountId=localStorage.getItem('socialstart-active-account');if(accountId)setFollowingByAccount(current=>({...current,[accountId]:followingUsernames}))},[followingUsernames])
   useEffect(()=>persist('socialstart-shares',shareCount),[shareCount])
   useEffect(()=>persist('socialstart-points',points),[points])
   useEffect(()=>persist('socialstart-global-creator-points',creatorPoints),[creatorPoints])
@@ -105,6 +108,6 @@ export function AppProvider({children}:{children:ReactNode}) {
   const spendBalance=(amount:number)=>{if(amount<=0||amount>balance)return false;setBalance(current=>current-amount);return true}
   const unread=Object.values(unreadByConversation).reduce((total,count)=>total+count,0)
   const markConversationRead=(id:string)=>setUnreadByConversation(current=>current[id]?{...current,[id]:0}:current)
-  return <Context.Provider value={{dark,setDark,unread,unreadByConversation,markConversationRead,points,pointsUsed,earnPoint:()=>setPoints(current=>current+1),creatorPoints,donatePoints,balance,addFunds:amount=>setBalance(current=>current+Math.max(0,amount)),spendBalance,postMetrics,cart,addToCart,updateCartQuantity,clearCart:()=>setCart([]),userPosts,publicPosts,addUserPost,savedPosts,toggleSavedPost,isPostSaved:id=>savedPosts.some(x=>x.id===id),likedPostIds,togglePostLike,followingUsernames,toggleFollow,viewPost,shareCount,recordShare,lockedPosts,setPostPrice,unlockPost,purchasedPostIds,purchasePost}}>{children}</Context.Provider>
+  return <Context.Provider value={{dark,setDark,unread,unreadByConversation,markConversationRead,points,pointsUsed,earnPoint:()=>setPoints(current=>current+1),creatorPoints,donatePoints,balance,addFunds:amount=>setBalance(current=>current+Math.max(0,amount)),spendBalance,postMetrics,cart,addToCart,updateCartQuantity,clearCart:()=>setCart([]),userPosts,publicPosts,addUserPost,savedPosts,toggleSavedPost,isPostSaved:id=>savedPosts.some(x=>x.id===id),likedPostIds,togglePostLike,followingUsernames,followingByAccount,toggleFollow,viewPost,shareCount,recordShare,lockedPosts,setPostPrice,unlockPost,purchasedPostIds,purchasePost}}>{children}</Context.Provider>
 }
 export const useApp=()=>{const value=useContext(Context);if(!value)throw new Error('AppProvider missing');return value}
