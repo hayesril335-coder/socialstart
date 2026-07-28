@@ -187,7 +187,7 @@ const updatePresence = async () => {
 
 export async function prepareCloudAccount(user: User, profile?: Record<string, string>) {
   cloudUser = user
-  const moderatorCreditRepairKey = 'socialstart-moderator-credit-repair-v3'
+  const moderatorCreditRepairKey = 'socialstart-moderator-credit-repair-v4'
   const previousAccountId = localStorage.getItem('socialstart-active-account')
   const currentProfile = readJson<{ email?: string }>('socialstart-settings-profile', {})
   const localStateBelongsToUser = previousAccountId === user.uid || Boolean(user.email && currentProfile.email?.trim().toLowerCase() === user.email.trim().toLowerCase())
