@@ -10,13 +10,13 @@ import { CategoryPicker } from '../../components/CategoryPicker'
 import { HashtagPicker } from '../../components/HashtagPicker'
 import { registerPostHashtags } from '../../lib/hashtags'
 
-const choices=[['/create/photo','Take picture',Camera,'Open your camera and capture the moment'],['/create/video','Take video',Video,'Open your camera and begin recording'],['/create/story','Add story',Repeat2,'Share a moment for 24 hours'],['/create/post','Create post',Image,'Upload a photo or video'],['/create/one-for-one','One For One',Upload,'Promote and earn Social Points'],['/create/live','Go live',Radio,'Broadcast to your community']] as const
+const choices=[['/create/photo','Take picture',Camera,'Open your camera and capture the moment'],['/create/video','Take video',Video,'Open your camera and begin recording'],['/create/story','Add story',Repeat2,'Share a moment for 24 hours'],['/create/post','Create post',Image,'Upload a photo or video'],['/create/live','Go live',Radio,'Broadcast to your community']] as const
 type Promo={title:string;media:string;mediaType:'image'|'video';views:number;author:string;username:string;avatar:string;category?:string;hashtags?:string[]}
 const promoKey=(type?:'image'|'video')=>{const selected=type||(new URLSearchParams(window.location.search).get('type')==='video'?'video':'image');return `socialstart-account-promo-${localStorage.getItem('socialstart-active-account')||'guest'}-${selected}`}
 const readPromo=(key=promoKey()):Promo|null=>{try{return JSON.parse(localStorage.getItem(key)||'null')}catch{return null}}
 const otherPromos=()=>{const own=promoKey(),found:{key:string;promo:Promo}[]=[];for(let index=0;index<localStorage.length;index++){const key=localStorage.key(index);if(key?.startsWith('socialstart-account-promo-')&&key!==own){const promo=readPromo(key);if(promo)found.push({key,promo})}}return found}
 
-export function CreateHubPage(){return <div className="create-page"><p className="eyebrow">START SOMETHING</p><h1>What will you<br/><em>share today?</em></h1><div className="create-grid">{choices.map(([to,title,Icon,desc],i)=><Link to={to} key={to} className={i===4?'accent':''}><Icon/><b>{title}</b><span>{desc}</span><i>0{i+1}</i></Link>)}</div></div>}
+export function CreateHubPage(){return <div className="create-page"><p className="eyebrow">START SOMETHING</p><h1>What will you<br/><em>share today?</em></h1><div className="create-grid">{choices.map(([to,title,Icon,desc],i)=><Link to={to} key={to} className={i===3?'accent':''}><Icon/><b>{title}</b><span>{desc}</span><i>0{i+1}</i></Link>)}</div></div>}
 
 export function MediaCreatePage(){
  const location=useLocation(),navigate=useNavigate(),{addUserPost}=useApp(),input=useRef<HTMLInputElement>(null),video=useRef<HTMLVideoElement>(null),stream=useRef<MediaStream|null>(null),recorder=useRef<MediaRecorder|null>(null),chunks=useRef<Blob[]>([])
