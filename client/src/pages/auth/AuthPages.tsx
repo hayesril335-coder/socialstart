@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile } from 'firebase/auth'
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, updateProfile } from 'firebase/auth'
 import { auth } from '../../lib/firebase'
 import { prepareCloudAccount, stopCloudSync } from '../../lib/cloudSync'
 
@@ -16,7 +16,7 @@ const authMessage=(error:unknown)=>{
  if(code.includes('invalid-credential'))return 'Incorrect email or password.'
  if(code.includes('operation-not-allowed'))return 'That sign-in method is not enabled yet.'
  if(code.includes('weak-password'))return 'Use a stronger password with at least 8 characters.'
- if(code.includes('popup-blocked'))return 'Allow popups for SocialStart, then try Google again.'
+ if(code.includes('popup-blocked'))return 'Opening Google sign-in in this window…'
  if(code.includes('popup-closed'))return 'Google sign-in was closed before it finished.'
  if(code.includes('too-many-requests'))return 'Too many attempts were made. Wait a few minutes, then try again.'
  if(code.includes('unauthorized-domain'))return 'This SocialStart address is not authorized for Google sign-in.'
@@ -42,7 +42,8 @@ export function AuthPage({signup=false}:{signup?:boolean}){
  const [show,setShow]=useState(false),[name,setName]=useState(''),[username,setUsername]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false)
  const googleSignIn=async()=>{
  setBusy(true);setError('')
-  try{
+ try{
+   stopCloudSync()
    if(localStorage.getItem('socialstart-moderator-session')==='true'){
     moderatorResetKeys.forEach(key=>localStorage.removeItem(key))
     localStorage.removeItem('socialstart-moderator-session')
@@ -54,7 +55,13 @@ export function AuthPage({signup=false}:{signup?:boolean}){
    const googleName=result.user.displayName||result.user.email?.split('@')[0]||'SocialStart user'
    const googleUsername=(result.user.email?.split('@')[0]||result.user.uid.slice(0,12)).replace(/[^a-zA-Z0-9._]/g,'')
    await finishSignIn(result.user,{name:googleName,username:googleUsername,email:result.user.email||'',...(result.user.photoURL?{avatar:result.user.photoURL}:{})})
-  }catch(authError){setError(authMessage(authError));setBusy(false)}
+  }catch(authError){
+   const code=typeof authError==='object'&&authError&&'code' in authError?String(authError.code):''
+   if(code.includes('popup-blocked')){
+    try{await signInWithRedirect(auth,new GoogleAuthProvider());return}catch(redirectError){setError(authMessage(redirectError))}
+   }else setError(authMessage(authError))
+   setBusy(false)
+  }
  }
  const submit=async()=>{
   setError('')
@@ -86,6 +93,8 @@ export function AuthPage({signup=false}:{signup?:boolean}){
     localStorage.removeItem('socialstart-moderator-session')
     localStorage.removeItem('socialstart-active-account')
    }
+   stopCloudSync()
+   if(auth.currentUser&&auth.currentUser.email?.toLowerCase()!==normalizedEmail)await signOut(auth)
    const result=signup?await createUserWithEmailAndPassword(auth,normalizedEmail,password):await signInWithEmailAndPassword(auth,normalizedEmail,password)
    const profile=signup?{name:name.trim(),username:username.trim().replace(/^@/,''),email:normalizedEmail}:undefined
    if(signup&&profile)await updateProfile(result.user,{displayName:profile.name})

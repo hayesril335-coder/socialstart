@@ -209,6 +209,17 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
           delete state['socialstart-moderator-session']
           repaired = true
         }
+        const moderatorCreditRepairKey = 'socialstart-moderator-credit-repair-v3'
+        if (user.email !== 'moderator@socialstart.app' && state[moderatorCreditRepairKey] !== 'true') {
+          const balance = Number(JSON.parse(state['socialstart-balance'] || '0'))
+          const points = Number(JSON.parse(state['socialstart-points'] || '0'))
+          if (balance >= 1000 && points >= 1000) {
+            state['socialstart-balance'] = JSON.stringify(balance - 1000)
+            state['socialstart-points'] = JSON.stringify(points - 1000)
+          }
+          state[moderatorCreditRepairKey] = 'true'
+          repaired = true
+        }
       } catch { /* Leave a valid non-moderator account state unchanged. */ }
     }
     applyState(state)

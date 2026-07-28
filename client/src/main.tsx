@@ -22,6 +22,7 @@ onAuthStateChanged(auth,async user=>{
  started=true
  if(user){
   try{await prepareCloudAccount(user)}catch(error){console.error('SocialStart could not load cloud data',error)}
+  if(location.pathname==='/login'||location.pathname==='/signup')history.replaceState(null,'','/search')
  }else if(localStorage.getItem('socialstart-moderator-session')!=='true'){
   localStorage.removeItem('socialstart-authenticated')
   localStorage.removeItem('socialstart-active-account')
