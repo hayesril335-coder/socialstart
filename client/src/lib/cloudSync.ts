@@ -9,6 +9,7 @@ const excludedKeys = new Set([
   'socialstart-active-account',
   'socialstart-moderator-session',
   'socialstart-hashtag-registry',
+  'socialstart-global-follower-alerts',
 ])
 const privateKeyFragments = ['password', 'security', 'billing']
 let cloudUser: User | null = null

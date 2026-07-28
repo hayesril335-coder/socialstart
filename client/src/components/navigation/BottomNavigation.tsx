@@ -1,7 +1,7 @@
 import { Camera, Search, UserRound, MessageCircle } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
-const EarnIcon=()=> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h3v12M14 6h3v12M9 8l3-2 3 2M15 16l-3 2-3-2M8 12h8"/></svg>
+const EarnIcon=()=> <svg viewBox="0 0 30 20" aria-hidden="true"><text x="15" y="15" textAnchor="middle">141</text></svg>
 const links=[['/profile','Profile',UserRound],['/search','Search',Search],['/create','Post',Camera],['/inbox','Inbox',MessageCircle],['/create/one-for-one','Earn',EarnIcon]] as const
 export function BottomNavigation(){
  const {unread}=useApp()

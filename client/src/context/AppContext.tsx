@@ -18,6 +18,14 @@ type AppState = {
 const Context = createContext<AppState | null>(null)
 const read=<T,>(key:string,fallback:T):T=>{try{return JSON.parse(localStorage.getItem(key)||'') as T}catch{return fallback}}
 const persist=(key:string,value:unknown)=>{try{localStorage.setItem(key,JSON.stringify(value));scheduleCloudSave()}catch{/* Large video blobs remain available for this session. */}}
+type FollowerAlert={id:string;targetUsername:string;followerUsername:string;name:string;avatar:string;createdAt:number}
+const followerAlerts=()=>read<FollowerAlert[]>('socialstart-global-follower-alerts',[])
+const pendingFollowerAlerts=()=>{
+ const profile=read<{username?:string}>('socialstart-settings-profile',{}),counted=read<string[]>('socialstart-counted-follower-alerts',[])
+ const fresh=followerAlerts().filter(alert=>alert.targetUsername===profile.username&&!counted.includes(alert.id))
+ if(fresh.length)localStorage.setItem('socialstart-counted-follower-alerts',JSON.stringify([...counted,...fresh.map(alert=>alert.id)]))
+ return fresh
+}
 const readPublicPosts=()=>{
  const combined=read<Post[]>('socialstart-public-posts',[])
  for(let index=0;index<localStorage.length;index++){
@@ -54,7 +62,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   const [purchasedPostIds,setPurchasedPostIds]=useState<string[]>(()=>read('socialstart-purchased-posts',[]))
   const [pointsUsed,setPointsUsed]=useState(()=>read('socialstart-points-used',0))
   const [balance,setBalance]=useState(()=>read('socialstart-balance',0))
-  const [unreadByConversation,setUnreadByConversation]=useState<Record<string,number>>(()=>read('socialstart-unread-messages',{welcome:1}))
+  const [unreadByConversation,setUnreadByConversation]=useState<Record<string,number>>(()=>{const saved=read<Record<string,number>>('socialstart-unread-messages',{welcome:1}),pending=pendingFollowerAlerts().length;return pending?{...saved,welcome:(saved.welcome||0)+pending}:saved})
   const setDark=(value:boolean)=>{setDarkState(value);localStorage.setItem('socialstart-theme',value?'dark':'light');scheduleCloudSave()}
   useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light'},[dark])
   useEffect(()=>persist('socialstart-cart',cart),[cart])
@@ -99,7 +107,14 @@ export function AppProvider({children}:{children:ReactNode}) {
    setPostMetrics(metrics=>({...metrics,[id]:{likes:Math.max(0,(metrics[id]?.likes||0)+(removing?-1:1)),views:metrics[id]?.views||0}}))
    return removing?current.filter(x=>x!==id):[...current,id]
   })
-  const toggleFollow=(username:string)=>setFollowingUsernames(current=>current.includes(username)?current.filter(x=>x!==username):[...current,username])
+  const toggleFollow=(username:string)=>setFollowingUsernames(current=>{
+   if(current.includes(username))return current.filter(x=>x!==username)
+   const profile=read<{name?:string;username?:string;avatar?:string}>('socialstart-settings-profile',{})
+   const alert:FollowerAlert={id:`follow-${Date.now()}-${profile.username||'member'}`,targetUsername:username,followerUsername:profile.username||'member',name:profile.name||profile.username||'A SocialStart member',avatar:profile.avatar||'',createdAt:Date.now()}
+   localStorage.setItem('socialstart-global-follower-alerts',JSON.stringify([...followerAlerts(),alert].slice(-200)))
+   window.dispatchEvent(new Event('socialstart-follower-alert'))
+   return [...current,username]
+  })
   const viewPost=(id:string)=>{
    setViewedPostIds(current=>{
     if(current.includes(id))return current
