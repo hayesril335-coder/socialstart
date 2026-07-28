@@ -37,7 +37,13 @@ export function SettingsPage(){
    keys.forEach(key=>{const value=localStorage.getItem(key);if(value!==null)snapshot[key]=value})
    localStorage.setItem('socialstart-account-data-socialstart-moderator-v2',JSON.stringify(snapshot))
   }
-  if(!moderatorSession){
+ if(!moderatorSession){
+   const accountId=localStorage.getItem('socialstart-active-account')
+   if(accountId){
+    const snapshot:Record<string,string>={}
+    for(let index=0;index<localStorage.length;index++){const key=localStorage.key(index);if(key?.startsWith('socialstart-')&&!key.startsWith('socialstart-account-data-')){const value=localStorage.getItem(key);if(value!==null)snapshot[key]=value}}
+    localStorage.setItem(`socialstart-account-data-${accountId}`,JSON.stringify(snapshot))
+   }
    scheduleCloudSave()
    await new Promise(resolve=>window.setTimeout(resolve,650))
   }

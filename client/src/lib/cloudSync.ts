@@ -188,7 +188,15 @@ const updatePresence = async () => {
 export async function prepareCloudAccount(user: User, profile?: Record<string, string>) {
   cloudUser = user
   const moderatorCreditRepairKey = 'socialstart-moderator-credit-repair-v3'
-  if (user.email !== 'moderator@socialstart.app' && localStorage.getItem('socialstart-active-account') === user.uid && localStorage.getItem(moderatorCreditRepairKey) !== 'true') {
+  const previousAccountId = localStorage.getItem('socialstart-active-account')
+  const currentProfile = readJson<{ email?: string }>('socialstart-settings-profile', {})
+  const localStateBelongsToUser = previousAccountId === user.uid || Boolean(user.email && currentProfile.email?.trim().toLowerCase() === user.email.trim().toLowerCase())
+  if (!localStateBelongsToUser) {
+    if (previousAccountId) localStorage.setItem(`socialstart-account-data-${previousAccountId}`, JSON.stringify(collectState()))
+    applyState({})
+  }
+  const legacyAccountId = restoreLegacySnapshot(user)
+  if (user.email !== 'moderator@socialstart.app' && localStorage.getItem(moderatorCreditRepairKey) !== 'true') {
     const localBalance = readJson<number>('socialstart-balance', 0)
     const localPoints = readJson<number>('socialstart-points', 0)
     if (localBalance >= 1000 || localPoints >= 1000) {
@@ -197,10 +205,22 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
     }
     localStorage.setItem(moderatorCreditRepairKey, 'true')
   }
-  const legacyAccountId = restoreLegacySnapshot(user)
-  const legacyState = legacyAccountId ? collectState() : {}
+  const legacyState = localStateBelongsToUser || legacyAccountId ? collectState() : {}
   const reference = doc(db, 'users', user.uid)
-  const snapshot = await getDoc(reference)
+  let snapshot
+  try {
+    snapshot = await getDoc(reference)
+  } catch (error) {
+    applyState(legacyState)
+    if (profile) {
+      const existing = readJson<Record<string,string>>('socialstart-settings-profile', {})
+      localStorage.setItem('socialstart-settings-profile', JSON.stringify({ ...existing, ...profile }))
+    }
+    localStorage.setItem('socialstart-active-account', user.uid)
+    localStorage.setItem('socialstart-authenticated', 'true')
+    ready = false
+    throw error
+  }
   if (snapshot.exists()) {
     const cloudState = snapshot.data().state
     const state = cloudState && typeof cloudState === 'object' ? { ...cloudState as Record<string, string> } : {}
