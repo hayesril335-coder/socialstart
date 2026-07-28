@@ -19,7 +19,27 @@ const groups=()=>readJson<GroupChat[]>('socialstart-group-chats',[])
 const followerAlerts=()=>{const own=readJson<{username?:string}>('socialstart-settings-profile',{}).username;return readJson<FollowerAlert[]>('socialstart-global-follower-alerts',[]).filter(alert=>alert.targetUsername===own)}
 const chatList=():ChatSummary[]=>{const latest=[...followerAlerts()].sort((a,b)=>b.createdAt-a.createdAt)[0];return [{id:'welcome',name:'SocialStart Welcome Bot',avatar:'',msg:latest?`Congratulations! ${latest.name} followed you.`:'Ask me how to use SocialStart!',time:'Now'},...groups().map(group=>({...group,msg:`${group.members.length} members`,time:'',group:true})),...allPeople().map(person=>({id:person.username,name:person.name,avatar:person.avatar,msg:'Open conversation',time:''}))]}
 const hasHistory=(chat:ChatSummary)=>chat.id==='welcome'||chat.group||Boolean(localStorage.getItem(`socialstart-messages-${chat.id}`))
-const answer=(question:string)=>{const q=question.toLowerCase();if(q.includes('group'))return 'Open Inbox and tap Create group chat below the search bar. Select people you follow, add a name and photo, then save.';if(q.includes('settings'))return 'Tap the Settings icon at the top-right.';if(q.includes('earn')||q.includes('point'))return 'Tap Earn at the bottom-right to open One For One and earn view points.';if(q.includes('save')||q.includes('bookmark'))return 'The Save bookmark is at the top-right of each post.';if(q.includes('name')||q.includes('username')||q.includes('profile picture'))return 'Open Settings at the top-right, then Edit profile and Save changes.';if(q.includes('post')||q.includes('upload'))return 'Tap Post in the center of the bottom navigation and choose what you want to share.';if(q.includes('store'))return 'Open Profile, then Online store.';if(q.includes('message')||q.includes('inbox'))return 'Inbox is the fourth button in the bottom navigation.';return `I’m not sure about “${question.trim()}” yet. Ask me where a button is or how to use a SocialStart feature.`}
+const answer=(question:string)=>{
+ const q=question.toLowerCase().replace(/[?!.]/g,' ')
+ if(q.includes('purpose of this app')||q.includes('what is socialstart')||q.includes('how to use the app'))return 'SocialStart helps creators share posts, stories and livestreams, build communities around hashtags, sell products, message people, and exchange genuine views through 141.'
+ if(q.includes('group'))return 'Open Inbox and tap Create group chat below the search bar. Select people you follow, choose a group name and photo, then tap Save group chat.'
+ if(q.includes('device')||q.includes('microphone')||q.includes('speaker'))return 'Tap Settings in the top-right, then Devices. Choose your preferred microphone and speaker and tap Save devices.'
+ if(q.includes('setting'))return 'The Settings gear is in the top-right. It contains profile, account, security, billing, addresses, devices, wallet, and logout.'
+ if(q.includes('141')||q.includes('earn')||q.includes('view point'))return 'Tap 141 / Earn at the bottom-right. Watching photos earns Photo View Points and completing videos earns Video View Points.'
+ if(q.includes('gift')||q.includes('donat'))return 'Tap the gift icon below another person’s post, choose Photo or Video View Points, enter an amount, and tap Gift.'
+ if(q.includes('save')||q.includes('bookmark'))return 'The bookmark Save button is below each post, immediately to the right of the gift button.'
+ if(q.includes('delete')&&q.includes('post'))return 'On your own post, tap the trash icon beside Save and confirm to remove it everywhere.'
+ if(q.includes('name')||q.includes('username')||q.includes('profile picture')||q.includes('bio'))return 'Open Settings in the top-right, choose Edit profile, make your changes, and tap Save changes.'
+ if(q.includes('live')||q.includes('screen share'))return 'Tap Post, then Go live. Submit a title, optionally add category and hashtags, select Camera, Screen share, or both, then start.'
+ if(q.includes('hashtag'))return 'Tap a hashtag under any post to see every matching post. Profile also has Followed hashtags and Created hashtags.'
+ if(q.includes('post')||q.includes('upload')||q.includes('story')||q.includes('picture')||q.includes('video'))return 'Tap Post in the center, choose a posting method, select or capture media, optionally edit it and add a category and up to five hashtags, then upload.'
+ if(q.includes('store')||q.includes('product')||q.includes('ship')||q.includes('meetup'))return 'Open Profile, then Online store. Add products and choose Ship, In Person, or both.'
+ if(q.includes('message')||q.includes('inbox')||q.includes('chat'))return 'Inbox is the fourth bottom button. It lists conversations with history, group chats, and this Welcome Bot.'
+ if(q.includes('follow'))return 'Open someone’s profile or use Follow on their post. The Following feed shows creators you follow.'
+ if(q.includes('search')||q.includes('filter'))return 'Tap Search. Search names, usernames, or titles; use the filter icon for media types and categories.'
+ if(q.includes('membership')||q.includes('subscription'))return 'On Profile tap Create subscription to set a monthly price. Other users can purchase membership to unlock subscriber posts.'
+ return 'I can explain any SocialStart button or feature. Try asking “Where is 141?”, “How do I livestream?”, “How do hashtags work?”, or “How do I add a product?”'
+}
 
 export function InboxPage(){
  const {unreadByConversation,followingUsernames}=useApp()

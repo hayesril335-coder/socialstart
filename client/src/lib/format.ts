@@ -11,3 +11,14 @@ export const formatCount = (value: number | string) => {
 
 export const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+
+export const parseCount = (value: number | string) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  const cleaned=value.trim().replace(/,/g,'')
+  const numeric=Number.parseFloat(cleaned)
+  if (!Number.isFinite(numeric)) return 0
+  if (/b$/i.test(cleaned)) return Math.round(numeric*1_000_000_000)
+  if (/m$/i.test(cleaned)) return Math.round(numeric*1_000_000)
+  if (/k$/i.test(cleaned)) return Math.round(numeric*1_000)
+  return numeric
+}

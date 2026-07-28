@@ -9,7 +9,9 @@ export function SharePostModal({ post, onClose, onShared }: { post: Post; onClos
   const [start, setStart] = useState(0)
   const [end, setEnd] = useState(30)
   const [duration, setDuration] = useState(30)
-  const [recipient, setRecipient] = useState<(typeof profiles)[number] | null>(null)
+  const groups=(()=>{try{return JSON.parse(localStorage.getItem('socialstart-group-chats')||'[]') as {id:string;name:string;avatar:string}[]}catch{return []}})()
+  const recipients=[...profiles.map(person=>({id:person.username,name:person.name,avatar:person.avatar,username:person.username})),...groups.map(group=>({id:group.id,name:group.name,avatar:group.avatar,username:group.id}))]
+  const [recipient, setRecipient] = useState<(typeof recipients)[number] | null>(null)
 
   useEffect(() => {
     if (post.mediaType !== 'video') return
@@ -68,6 +70,6 @@ export function SharePostModal({ post, onClose, onShared }: { post: Post; onClos
     <button className="secondary-btn wide" onClick={() => void externalShare()}><Link2 /> Share outside SocialStart</button>
     {post.mediaType === 'video' && <p className="clip-notice"><Scissors/> Choose a recipient, then select the exact part of the video to send.</p>}
     <p className="share-with-label">Send in SocialStart</p>
-    <div className="share-recipient-list">{profiles.map(person => <button key={person.username} onClick={() => post.mediaType === 'video' ? setRecipient(person) : sendTo(person.username)}><img src={person.avatar} /><span><b>{person.name}</b><small>{person.username}</small></span><Send /></button>)}</div>
+    <div className="share-recipient-list">{recipients.map(person => <button key={person.id} onClick={() => post.mediaType === 'video' ? setRecipient(person) : sendTo(person.username)}>{person.avatar?<img src={person.avatar} />:<span className="share-group-avatar">Group</span>}<span><b>{person.name}</b><small>{groups.some(group=>group.id===person.id)?'Group chat':person.username}</small></span><Send /></button>)}</div>
   </div></div>
 }

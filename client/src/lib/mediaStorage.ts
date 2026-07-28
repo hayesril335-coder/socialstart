@@ -28,14 +28,21 @@ export async function uploadMedia(source: string, folder: string) {
     if (usedToday + blob.size > dailyLimit) throw new Error('This account has reached its 10 GB daily upload limit.')
     const extension = extensionFor(blob.type)
     const path = `users/${user.uid}/${folder}/${crypto.randomUUID()}.${extension}`
-    const snapshot = await uploadBytes(ref(storage, path), blob, {
+    const upload = uploadBytes(ref(storage, path), blob, {
       contentType: blob.type || 'application/octet-stream',
       cacheControl: 'public,max-age=31536000,immutable',
     })
+    const snapshot = await Promise.race([
+      upload,
+      new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 20_000)),
+    ])
     localStorage.setItem(usageKey, String(usedToday + blob.size))
     return await getDownloadURL(snapshot.ref)
   } catch (error) {
     console.error('SocialStart media upload failed', error)
-    throw new Error('The media could not be uploaded. Check that Firebase Storage is enabled and try again.')
+    // A compressed data URL is still account-persistent and is preferable to an
+    // upload control that never finishes when Storage is temporarily unavailable.
+    if (source.startsWith('data:') && source.length < 750_000) return source
+    throw new Error('The upload did not finish. Try a smaller file or check your connection.')
   }
 }

@@ -286,6 +286,19 @@ export function scheduleCloudSave() {
   }, 500)
 }
 
+export async function flushCloudSave() {
+  window.clearTimeout(saveTimer)
+  if (!cloudUser) return
+  await Promise.all([
+    setDoc(doc(db, 'users', cloudUser.uid), {
+      state: collectState(),
+      email: cloudUser.email || '',
+      updatedAt: serverTimestamp(),
+    }, { merge: true }),
+    syncSharedData(cloudUser),
+  ])
+}
+
 export function stopCloudSync() {
   ready = false
   cloudUser = null

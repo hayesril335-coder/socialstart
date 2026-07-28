@@ -1,10 +1,10 @@
-import { useRef, useState, type FormEvent } from 'react'
-import { ChevronRight, CircleDollarSign, CreditCard, LockKeyhole, LogOut, MapPin, Moon, UserRound, WalletCards } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { ChevronRight, CircleDollarSign, CreditCard, Headphones, LockKeyhole, LogOut, MapPin, Mic, Moon, UserRound, WalletCards } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../lib/firebase'
-import { scheduleCloudSave, stopCloudSync } from '../../lib/cloudSync'
+import { flushCloudSave, scheduleCloudSave, stopCloudSync } from '../../lib/cloudSync'
 import { uploadMedia } from '../../lib/mediaStorage'
 import { formatCurrency } from '../../lib/format'
 
@@ -28,7 +28,7 @@ const readValues=(type:string)=>{try{return {...defaults[type],...JSON.parse(loc
 
 export function SettingsPage(){
  const {dark,setDark}=useApp(),navigate=useNavigate()
- const items=[['/settings/profile','Edit profile',UserRound],['/settings/account','Account details',LockKeyhole],['/settings/security','Security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/wallet','Wallet',WalletCards]] as const
+ const items=[['/settings/profile','Edit profile',UserRound],['/settings/account','Account details',LockKeyhole],['/settings/security','Security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/devices','Devices',Headphones],['/settings/wallet','Wallet',WalletCards]] as const
  const logout=async()=>{
   const moderatorSession=localStorage.getItem('socialstart-moderator-session')==='true'
   if(moderatorSession){
@@ -45,7 +45,7 @@ export function SettingsPage(){
     localStorage.setItem(`socialstart-account-data-${accountId}`,JSON.stringify(snapshot))
    }
    scheduleCloudSave()
-   await new Promise(resolve=>window.setTimeout(resolve,650))
+   await flushCloudSave().catch(()=>undefined)
   }
   stopCloudSync()
   await signOut(auth)
@@ -62,6 +62,9 @@ export function SettingsDetailPage({type}:{type:string}){
  const {balance,addFunds}=useApp()
  const photoInput=useRef<HTMLInputElement>(null)
  const [values,setValues]=useState<Values>(()=>readValues(type)),[message,setMessage]=useState(''),[walletAmount,setWalletAmount]=useState('')
+ const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[devicePrefs,setDevicePrefs]=useState(()=>readValues('Devices'))
+ useEffect(()=>{if(type!=='Devices')return;void navigator.mediaDevices?.enumerateDevices().then(setDevices).catch(()=>setDevices([]))},[type])
+ if(type==='Devices'){const microphones=devices.filter(device=>device.kind==='audioinput'),speakers=devices.filter(device=>device.kind==='audiooutput');return <div className="form-page"><p className="eyebrow">SETTINGS / DEVICES</p><h1>Microphone & speaker</h1><label className="field"><Mic/> Microphone<select value={devicePrefs.microphone||''} onChange={event=>setDevicePrefs({...devicePrefs,microphone:event.target.value})}><option value="">System default</option>{microphones.map((device,index)=><option value={device.deviceId} key={device.deviceId}>{device.label||`Microphone ${index+1}`}</option>)}</select></label><label className="field"><Headphones/> Speaker<select value={devicePrefs.speaker||''} onChange={event=>setDevicePrefs({...devicePrefs,speaker:event.target.value})}><option value="">System default</option>{speakers.map((device,index)=><option value={device.deviceId} key={device.deviceId}>{device.label||`Speaker ${index+1}`}</option>)}</select></label><button className="primary-btn settings-save" onClick={()=>{localStorage.setItem(storageKey('Devices'),JSON.stringify(devicePrefs));scheduleCloudSave();setMessage('Device preferences saved.')}}>Save devices</button>{message&&<p className="save-success">{message}</p>}</div>}
  if(type==='Wallet')return <div className="form-page"><p className="eyebrow">SETTINGS / WALLET</p><h1>Your wallet</h1><div className="balance-card"><span>AVAILABLE BALANCE</span><b>{formatCurrency(balance)}</b><small>Ready to spend or tip</small></div><label className="field">Add funds<input type="number" min="1" value={walletAmount} onChange={event=>setWalletAmount(event.target.value)} placeholder="$0.00"/></label><button className="primary-btn wide" disabled={Number(walletAmount)<=0} onClick={()=>{addFunds(Number(walletAmount));setMessage(`${formatCurrency(Number(walletAmount))} added to your wallet.`);setWalletAmount('')}}><CircleDollarSign/> Continue</button>{message&&<p className="save-success">{message}</p>}<h3>Recent activity</h3><div className="profile-empty"><p>No wallet activity yet.</p></div></div>
  const loadProfilePhoto=(file:File)=>{const reader=new FileReader();reader.onload=()=>{const image=new Image();image.onload=()=>{const size=Math.min(400,Math.max(image.width,image.height)),scale=size/Math.max(image.width,image.height),canvas=document.createElement('canvas');canvas.width=Math.round(image.width*scale);canvas.height=Math.round(image.height*scale);canvas.getContext('2d')?.drawImage(image,0,0,canvas.width,canvas.height);setValues(current=>({...current,avatar:canvas.toDataURL('image/jpeg',.78)}))};image.src=String(reader.result)};reader.readAsDataURL(file)}
  const submit=async(event:FormEvent)=>{event.preventDefault();if(type==='Security'&&values.newPassword!==values.confirmPassword){setMessage('New passwords do not match.');return}try{setMessage('Saving…');const savedValues=type==='Profile'&&values.avatar?.startsWith('data:')?{...values,avatar:await uploadMedia(values.avatar,'profile')}:values;localStorage.setItem(storageKey(type),JSON.stringify(savedValues));setValues(savedValues);scheduleCloudSave();if(type==='Profile')window.dispatchEvent(new Event('socialstart-profile-updated'));setMessage(`${type} changes saved.`)}catch(error){setMessage(error instanceof Error?error.message:'That image could not be saved.')}}
