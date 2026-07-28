@@ -187,6 +187,16 @@ const updatePresence = async () => {
 
 export async function prepareCloudAccount(user: User, profile?: Record<string, string>) {
   cloudUser = user
+  const moderatorCreditRepairKey = 'socialstart-moderator-credit-repair-v3'
+  if (user.email !== 'moderator@socialstart.app' && localStorage.getItem('socialstart-active-account') === user.uid && localStorage.getItem(moderatorCreditRepairKey) !== 'true') {
+    const localBalance = readJson<number>('socialstart-balance', 0)
+    const localPoints = readJson<number>('socialstart-points', 0)
+    if (localBalance >= 1000 || localPoints >= 1000) {
+      localStorage.setItem('socialstart-balance', JSON.stringify(Math.max(0, localBalance - 1000)))
+      localStorage.setItem('socialstart-points', JSON.stringify(Math.max(0, localPoints - 1000)))
+    }
+    localStorage.setItem(moderatorCreditRepairKey, 'true')
+  }
   const legacyAccountId = restoreLegacySnapshot(user)
   const legacyState = legacyAccountId ? collectState() : {}
   const reference = doc(db, 'users', user.uid)
@@ -209,13 +219,12 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
           delete state['socialstart-moderator-session']
           repaired = true
         }
-        const moderatorCreditRepairKey = 'socialstart-moderator-credit-repair-v3'
         if (user.email !== 'moderator@socialstart.app' && state[moderatorCreditRepairKey] !== 'true') {
           const balance = Number(JSON.parse(state['socialstart-balance'] || '0'))
           const points = Number(JSON.parse(state['socialstart-points'] || '0'))
-          if (balance >= 1000 && points >= 1000) {
-            state['socialstart-balance'] = JSON.stringify(balance - 1000)
-            state['socialstart-points'] = JSON.stringify(points - 1000)
+          if (balance >= 1000 || points >= 1000) {
+            state['socialstart-balance'] = JSON.stringify(Math.max(0, balance - 1000))
+            state['socialstart-points'] = JSON.stringify(Math.max(0, points - 1000))
           }
           state[moderatorCreditRepairKey] = 'true'
           repaired = true
