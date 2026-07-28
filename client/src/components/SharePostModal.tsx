@@ -1,21 +1,33 @@
-import { useEffect, useState } from 'react'
-import { Link2, Send, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, Link2, Scissors, Send, X } from 'lucide-react'
 import type { Post } from '../types'
 import { profiles } from '../utils/mockData'
 import { scheduleCloudSave } from '../lib/cloudSync'
 
 export function SharePostModal({ post, onClose, onShared }: { post: Post; onClose: () => void; onShared: () => void }) {
+  const preview = useRef<HTMLVideoElement>(null)
   const [start, setStart] = useState(0)
   const [end, setEnd] = useState(30)
+  const [duration, setDuration] = useState(30)
+  const [recipient, setRecipient] = useState<(typeof profiles)[number] | null>(null)
 
   useEffect(() => {
     if (post.mediaType !== 'video') return
     const video = document.createElement('video')
     video.preload = 'metadata'
-    video.onloadedmetadata = () => setEnd(Number.isFinite(video.duration) ? Math.round(video.duration * 10) / 10 : 30)
+    video.onloadedmetadata = () => {
+      const length = Number.isFinite(video.duration) ? Math.round(video.duration * 10) / 10 : 30
+      setDuration(length)
+      setEnd(length)
+    }
     video.src = post.image
     return () => { video.removeAttribute('src'); video.load() }
   }, [post.image, post.mediaType])
+
+  useEffect(() => {
+    if (!preview.current) return
+    preview.current.currentTime = start
+  }, [start, recipient])
 
   const externalShare = async () => {
     const url = `${window.location.origin}/post/${post.id}`
@@ -38,12 +50,24 @@ export function SharePostModal({ post, onClose, onShared }: { post: Post; onClos
     onShared()
   }
 
+  if (post.mediaType === 'video' && recipient) return <div className="purchase-modal share-post-modal clip-editor-modal"><div>
+    <button className="modal-close" onClick={onClose}><X /></button>
+    <button className="clip-back" onClick={() => setRecipient(null)}><ArrowLeft /> Back</button>
+    <Scissors /><h2>Choose the video clip</h2>
+    <p>Move the start and end controls to send only this part to {recipient.name}.</p>
+    <video ref={preview} src={`${post.image}#t=${start},${end}`} controls playsInline />
+    <div className="clip-time-readout"><b>{start.toFixed(1)}s</b><span>{(end-start).toFixed(1)} second clip</span><b>{end.toFixed(1)}s</b></div>
+    <label className="clip-range">Start time<input aria-label="Clip start time" type="range" min="0" max={Math.max(0,end-.1)} step=".1" value={start} onChange={event=>setStart(Math.min(Number(event.target.value),end-.1))}/></label>
+    <label className="clip-range">End time<input aria-label="Clip end time" type="range" min={Math.min(duration,start+.1)} max={duration} step=".1" value={end} onChange={event=>setEnd(Math.max(Number(event.target.value),start+.1))}/></label>
+    <button className="primary-btn wide" onClick={()=>sendTo(recipient.username)}><Send/> Send {start.toFixed(1)}s–{end.toFixed(1)}s</button>
+  </div></div>
+
   return <div className="purchase-modal share-post-modal"><div>
     <button className="modal-close" onClick={onClose}><X /></button>
     <Send /><h2>Share this post</h2>
     <button className="secondary-btn wide" onClick={() => void externalShare()}><Link2 /> Share outside SocialStart</button>
-    {post.mediaType === 'video' && <div className="trim-controls"><p>Choose the part of the video to send</p><label>Starts at<input type="number" min="0" max={end} step=".1" value={start} onChange={event => setStart(Math.max(0, Number(event.target.value)))} /> seconds</label><label>Ends at<input type="number" min={start + .1} step=".1" value={end} onChange={event => setEnd(Math.max(start + .1, Number(event.target.value)))} /> seconds</label></div>}
+    {post.mediaType === 'video' && <p className="clip-notice"><Scissors/> Choose a recipient, then select the exact part of the video to send.</p>}
     <p className="share-with-label">Send in SocialStart</p>
-    <div className="share-recipient-list">{profiles.map(person => <button key={person.username} onClick={() => sendTo(person.username)}><img src={person.avatar} /><span><b>{person.name}</b><small>{person.username}</small></span><Send /></button>)}</div>
+    <div className="share-recipient-list">{profiles.map(person => <button key={person.username} onClick={() => post.mediaType === 'video' ? setRecipient(person) : sendTo(person.username)}><img src={person.avatar} /><span><b>{person.name}</b><small>{person.username}</small></span><Send /></button>)}</div>
   </div></div>
 }

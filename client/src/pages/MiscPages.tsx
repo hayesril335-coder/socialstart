@@ -9,7 +9,7 @@ const notificationNames:Record<string,string>={welcome:'SocialStart Welcome Bot'
 const captureScreen=async()=>{
  const devices=navigator.mediaDevices
  if(devices?.getDisplayMedia){
-  try{return await devices.getDisplayMedia({video:{displaySurface:'monitor'},audio:true})}
+  try{return await devices.getDisplayMedia({video:true,audio:true})}
   catch(error){if(error instanceof DOMException&&['NotAllowedError','AbortError'].includes(error.name))throw error;return devices.getDisplayMedia({video:true,audio:false})}
  }
  const legacyNavigator=navigator as Navigator&{getDisplayMedia?:(constraints:MediaStreamConstraints)=>Promise<MediaStream>}
@@ -33,7 +33,7 @@ export function LivePage(){
   <CategoryPicker value={category} onChange={setCategory}/>
   <HashtagPicker value={hashtags} onChange={setHashtags}/>
   {submittedTitle&&<p className="save-success">Title ready: {submittedTitle}</p>}{error&&<p className="camera-error">{error}</p>}
-  {!live&&<div className="live-source-picker"><button type="button" className={source==='camera'?'active':''} onClick={()=>setSource('camera')}><Camera/> Camera</button><button type="button" className={source==='screen'?'active':''} onClick={()=>setSource('screen')}><MonitorUp/> Screen share</button></div>}
+  {!live&&<><div className="live-source-picker"><button type="button" className={source==='camera'?'active':''} onClick={()=>setSource('camera')}><Camera/> Camera</button><button type="button" className={source==='screen'?'active':''} onClick={()=>setSource('screen')}><MonitorUp/> Screen share</button></div>{source==='screen'&&<p className="screen-share-help"><b>In the “Choose what to share” window:</b> click a screen, window, or tab preview first. The Share button becomes available after a preview is selected.</p>}</>}
   <div className="live-actions">{live?<button onClick={endLive} className="secondary-btn end-live"><Square/> End live stream</button>:<button onClick={startLive} disabled={starting||!submittedTitle} className="primary-btn"><Radio/> {starting?'Starting…':source==='screen'?'Start screen share':'Start live stream'}</button>}</div>
  </div>
 }
