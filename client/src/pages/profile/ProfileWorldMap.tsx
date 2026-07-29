@@ -14,7 +14,7 @@ export type WorldMapPerson = {
 
 export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const globeRef = useRef<GlobeMethods>()
+  const globeRef = useRef<GlobeMethods | undefined>(undefined)
   const [size, setSize] = useState({ width: 700, height: 230 })
 
   useEffect(() => {
