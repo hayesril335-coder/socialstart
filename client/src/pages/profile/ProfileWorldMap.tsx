@@ -34,8 +34,7 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
     globe.pointOfView({ lat: 28, lng: -60, altitude: 2.05 }, 0)
     globe.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     const controls = globe.controls()
-    controls.autoRotate = true
-    controls.autoRotateSpeed = 0.32
+    controls.autoRotate = false
     controls.enablePan = false
     controls.enableZoom = true
     controls.minDistance = 102

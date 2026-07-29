@@ -12,10 +12,10 @@ const cityCoordinates:Record<string,[number,number]>={
  'los angeles':[34.0522,-118.2437],'silver lake':[34.0869,-118.2702],'malibu':[34.0259,-118.7798],'echo park':[34.0782,-118.2606],'santa monica':[34.0195,-118.4912],'downtown la':[34.0407,-118.2468],'highland park':[34.1158,-118.1854],'topanga':[34.0917,-118.6021],'culver city':[34.0211,-118.3965],'pasadena':[34.1478,-118.1445],'portland':[45.5152,-122.6784],'brooklyn':[40.6782,-73.9442],'miami':[25.7617,-80.1918],'seattle':[47.6062,-122.3321],'new york':[40.7128,-74.006],'chicago':[41.8781,-87.6298],'houston':[29.7604,-95.3698],'atlanta':[33.749,-84.388],'london':[51.5072,-.1276],'paris':[48.8566,2.3522],'tokyo':[35.6762,139.6503],'toronto':[43.6532,-79.3832],'sydney':[-33.8688,151.2093]
 }
 const hashValue=(value:string)=>[...value].reduce((total,character)=>((total*31)+character.charCodeAt(0))>>>0,7)
-const mapCoordinates=(location:string,username:string)=>{
+const mapCoordinates=(location:string,username:string,knownLatitude?:number,knownLongitude?:number)=>{
  const normalized=location.toLowerCase(),match=Object.entries(cityCoordinates).find(([city])=>normalized.includes(city)),hash=hashValue(username)
- const [latitude,longitude]=match?.[1]||[25+(hash%2400)/100, -124+(hash%5700)/100]
- const latitudeJitter=((hash%11)-5)*.065,longitudeJitter=(((Math.floor(hash/11))%11)-5)*.085
+ const [latitude,longitude]=knownLatitude!==undefined&&knownLongitude!==undefined?[knownLatitude,knownLongitude]:(match?.[1]||[25+(hash%2400)/100, -124+(hash%5700)/100])
+ const latitudeJitter=((hash%11)-5)*.008,longitudeJitter=(((Math.floor(hash/11))%11)-5)*.01
  return {latitude:latitude+latitudeJitter,longitude:longitude+longitudeJitter}
 }
 
@@ -55,7 +55,7 @@ export function ProfilePage(){
  const socialPointsFor=(targetUsername:string,targetCloud?:{stats?:{socialPoints?:number}},isMock=false)=>targetCloud?.stats?.socialPoints??creatorPoints[targetUsername]??(isMock?100+hashValue(targetUsername)%900:0)
  const mapPeople=mapFollowing.map(followedUsername=>{
   const mock=profiles.find(item=>item.username===followedUsername),cloud=cloudProfiles.find(item=>item.username===followedUsername) as {name?:string;username?:string;avatar?:string;location?:string;stats?:{socialPoints?:number}}|undefined,post=publicPosts.find(item=>item.username===followedUsername),name=cloud?.name||mock?.name||post?.author||followedUsername,avatar=cloud?.avatar||mock?.avatar||post?.avatar||'',location=cloud?.location||mock?.location||post?.location||'Los Angeles, CA',socialPoints=socialPointsFor(followedUsername,cloud,Boolean(mock))
-  return {username:followedUsername,name,avatar,location,socialPoints,...mapCoordinates(location,followedUsername)}
+  return {username:followedUsername,name,avatar,location,socialPoints,...mapCoordinates(location,followedUsername,post?.approximateLatitude,post?.approximateLongitude)}
  })
  const profileSocialPoints=own?points:socialPointsFor(profile.user,cloudProfile,Boolean(foundProfile))
 
