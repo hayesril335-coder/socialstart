@@ -84,7 +84,7 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
       htmlElementsData={people}
       htmlLat="latitude"
       htmlLng="longitude"
-      htmlAltitude={0.04}
+      htmlAltitude={0}
       htmlElement={makeMarker}
       onGlobeReady={prepareGlobe}
     />

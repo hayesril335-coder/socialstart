@@ -36,6 +36,18 @@ export const activeMembershipFor = (username: string) => {
   return purchase && purchase.renewsAt > Date.now() ? purchase : null
 }
 
+export const membershipPurchases = () =>
+  Object.values(read<Record<string, MembershipPurchase>>(purchasesKey, {}))
+    .sort((a, b) => b.startedAt - a.startedAt)
+
+export const cancelMembership = (username: string) => {
+  const purchases = read<Record<string, MembershipPurchase>>(purchasesKey, {})
+  if (!purchases[username]) return
+  delete purchases[username]
+  localStorage.setItem(purchasesKey, JSON.stringify(purchases))
+  scheduleCloudSave()
+}
+
 export const purchaseMembership = (username: string, price: number) => {
   const purchases = read<Record<string, MembershipPurchase>>(purchasesKey, {})
   const startedAt = Date.now()

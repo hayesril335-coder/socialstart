@@ -21,7 +21,7 @@ const mapCoordinates=(location:string,username:string,knownLatitude?:number,know
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
- const {balance,points,creatorPoints,postMetrics,userPosts,publicPosts,savedPosts,followingUsernames,followingByAccount,toggleFollow}=useApp()
+ const {balance,points,postMetrics,userPosts,publicPosts,savedPosts,followingUsernames,followingByAccount,toggleFollow}=useApp()
  const readOwnProfile=()=>{try{return JSON.parse(localStorage.getItem('socialstart-settings-profile')||'{}')}catch{return {}}}
  const readCloudProfiles=()=>{const found:Record<string,unknown>[]=[];for(let index=0;index<localStorage.length;index++){const key=localStorage.key(index);if(!key?.startsWith('socialstart-public-profile-'))continue;try{found.push(JSON.parse(localStorage.getItem(key)||'{}'))}catch{/* Ignore a damaged cached public profile. */}}return found}
  const [savedProfile,setSavedProfile]=useState<Record<string,string>>(readOwnProfile)
@@ -52,10 +52,10 @@ export function ProfilePage(){
  const isOnline=own?true:cloudProfile?Date.now()-(cloudProfile.lastActiveAt||0)<150000:profile.user.length%2===0
  const membership=membershipPlanFor(profile.user),hasMembership=Boolean(activeMembershipFor(profile.user))
  const mapFollowing=own?followingUsernames:(targetAccountId?followingByAccount[targetAccountId]||[]:[])
- const socialPointsFor=(targetUsername:string,targetCloud?:{stats?:{socialPoints?:number}},isMock=false)=>targetCloud?.stats?.socialPoints??creatorPoints[targetUsername]??(isMock?100+hashValue(targetUsername)%900:0)
+ const socialPointsFor=(targetUsername:string,targetCloud?:{stats?:{socialPoints?:number}},isMock=false)=>targetCloud?.stats?.socialPoints??(isMock?100+hashValue(targetUsername)%900:0)
  const mapPeople=mapFollowing.map(followedUsername=>{
-  const mock=profiles.find(item=>item.username===followedUsername),cloud=cloudProfiles.find(item=>item.username===followedUsername) as {name?:string;username?:string;avatar?:string;location?:string;stats?:{socialPoints?:number}}|undefined,post=publicPosts.find(item=>item.username===followedUsername),name=cloud?.name||mock?.name||post?.author||followedUsername,avatar=cloud?.avatar||mock?.avatar||post?.avatar||'',location=cloud?.location||mock?.location||post?.location||'Los Angeles, CA',socialPoints=socialPointsFor(followedUsername,cloud,Boolean(mock))
-  return {username:followedUsername,name,avatar,location,socialPoints,...mapCoordinates(location,followedUsername,post?.approximateLatitude,post?.approximateLongitude)}
+  const post=publicPosts.find(item=>item.username===followedUsername||item.ownerAccountId===followedUsername),cloud=cloudProfiles.find(item=>item.username===followedUsername||item.uid===followedUsername||(post?.ownerAccountId&&item.uid===post.ownerAccountId)) as {uid?:string;name?:string;username?:string;avatar?:string;location?:string;stats?:{socialPoints?:number}}|undefined,canonicalUsername=cloud?.username||post?.username||followedUsername,mock=profiles.find(item=>item.username===canonicalUsername),name=cloud?.name||mock?.name||post?.author||canonicalUsername,avatar=cloud?.avatar||mock?.avatar||post?.avatar||'',location=cloud?.location||mock?.location||post?.location||'Los Angeles, CA',socialPoints=socialPointsFor(canonicalUsername,cloud,Boolean(mock))
+  return {username:canonicalUsername,name,avatar,location,socialPoints,...mapCoordinates(location,canonicalUsername,post?.approximateLatitude,post?.approximateLongitude)}
  })
  const profileSocialPoints=own?points:socialPointsFor(profile.user,cloudProfile,Boolean(foundProfile))
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { ChevronRight, CircleDollarSign, CreditCard, Crown, Headphones, LockKeyhole, LogOut, MapPin, Mic, Moon, Store, UserRound, WalletCards } from 'lucide-react'
+import { ChevronRight, CircleDollarSign, CircleX, CreditCard, Crown, Headphones, LockKeyhole, LogOut, MapPin, Mic, Moon, Store, UserRound, WalletCards } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { signOut } from 'firebase/auth'
@@ -7,6 +7,8 @@ import { auth } from '../../lib/firebase'
 import { flushCloudSave, scheduleCloudSave, stopCloudSync } from '../../lib/cloudSync'
 import { uploadMedia } from '../../lib/mediaStorage'
 import { formatCurrency } from '../../lib/format'
+import { cancelMembership, membershipPurchases, type MembershipPurchase } from '../../lib/memberships'
+import { profiles } from '../../utils/mockData'
 
 type Values=Record<string,string>
 const defaults:Record<string,Values>={
@@ -29,7 +31,7 @@ const readValues=(type:string)=>{try{const values={...defaults[type],...JSON.par
 export function SettingsPage(){
  const {dark,setDark}=useApp(),navigate=useNavigate()
  const profile=readValues('Profile'),membershipExists=Boolean(localStorage.getItem('socialstart-membership-plans')?.includes(`"${profile.username}"`))
- const items=[['/settings/profile','Edit profile',UserRound],[`/store/${profile.username||'creator'}/manage`,'Online Store',Store],['/membership/setup',membershipExists?'Edit Subscription':'Create Subscription',Crown],['/settings/account','Account details',LockKeyhole],['/settings/security','Security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/devices','Devices',Headphones],['/settings/wallet','Wallet',WalletCards]] as const
+ const items=[['/settings/profile','Edit profile',UserRound],[`/store/${profile.username||'creator'}/manage`,'Online Store',Store],['/membership/setup',membershipExists?'Edit Subscription':'Create Subscription',Crown],['/settings/account','Account details',LockKeyhole],['/settings/security','Security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/devices','Devices',Headphones],['/settings/wallet','Wallet',WalletCards],['/settings/memberships','Cancel Membership',CircleX]] as const
  const logout=async()=>{
   const moderatorSession=localStorage.getItem('socialstart-moderator-session')==='true'
   if(moderatorSession){
@@ -57,6 +59,18 @@ export function SettingsPage(){
   localStorage.removeItem('socialstart-authenticated');localStorage.removeItem('socialstart-active-account');localStorage.removeItem('socialstart-moderator-session');sessionStorage.clear();navigate('/login',{replace:true})
  }
  return <div className="settings-page"><p className="eyebrow">YOUR SPACE</p><h1>Settings</h1><section><p className="eyebrow">ACCOUNT</p>{items.map(([to,label,Icon])=><Link to={to} key={to}><Icon/><span>{label}</span><ChevronRight/></Link>)}</section><section><p className="eyebrow">PREFERENCES</p><button onClick={()=>setDark(!dark)}><Moon/><span>Dark mode</span><i className={dark?'switch on':'switch'}><i/></i></button></section><button className="logout" onClick={logout}><LogOut/> Log out</button></div>
+}
+
+export function MembershipSubscriptionsPage(){
+ const [purchases,setPurchases]=useState<MembershipPurchase[]>(membershipPurchases)
+ const [message,setMessage]=useState('')
+ const remove=(purchase:MembershipPurchase)=>{
+  if(!window.confirm(`Cancel your membership with @${purchase.username}? You will lose access to their members-only posts.`))return
+  cancelMembership(purchase.username)
+  setPurchases(membershipPurchases())
+  setMessage(`Your @${purchase.username} membership was cancelled.`)
+ }
+ return <div className="form-page membership-subscriptions"><p className="eyebrow">SETTINGS / MEMBERSHIPS</p><h1>Cancel memberships</h1><p className="membership-subscriptions-lead">Review the monthly memberships you have paid for and cancel them individually.</p>{message&&<p className="save-success">{message}</p>}{purchases.length?<div className="membership-subscription-list">{purchases.map(purchase=>{const creator=profiles.find(item=>item.username===purchase.username),active=purchase.renewsAt>Date.now();return <article key={purchase.username}>{creator?.avatar?<img src={creator.avatar} alt=""/>:<span>{(creator?.name||purchase.username).slice(0,1)}</span>}<div><b>{creator?.name||purchase.username}</b><small>@{purchase.username}</small><strong>{formatCurrency(purchase.price)}/month · {active?`Renews ${new Date(purchase.renewsAt).toLocaleDateString()}`:'Expired'}</strong></div><button onClick={()=>remove(purchase)}><CircleX/> Cancel</button></article>})}</div>:<div className="profile-empty"><Crown/><h3>No paid memberships</h3><p>Memberships you purchase will appear here.</p></div>}</div>
 }
 
 export function SettingsDetailPage({type}:{type:string}){
