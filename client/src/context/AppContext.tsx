@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Post } from '../types'
 import { awardSocialPoint, scheduleCloudSave } from '../lib/cloudSync'
 import { registerPostHashtags } from '../lib/hashtags'
+import { membershipPlanFor } from '../lib/memberships'
 
 export type CartItem = { id:string; title:string; price:number; image:string; quantity:number; ship?:boolean; inPerson?:boolean; sellerUsername?:string }
 export type PostMetric = { likes:number; views:number }
@@ -140,7 +141,11 @@ export function AppProvider({children}:{children:ReactNode}) {
   }
   const recordShare=()=>setShareCount(current=>current+1)
   const donatePoints=(username:string,amount:number)=>{if(!Number.isInteger(amount)||amount<1||amount>points)return false;setPoints(current=>current-amount);setPointsUsed(current=>current+amount);setCreatorPoints(current=>({...current,[username]:(current[username]||0)+amount}));return true}
-  const setPostPrice=(id:string,price:number)=>setLockedPosts(current=>({...current,[id]:price}))
+  const setPostPrice=(id:string,price:number)=>{
+   const post=findPost(id)
+   if(post&&membershipPlanFor(post.username))return
+   setLockedPosts(current=>({...current,[id]:price}))
+  }
   const unlockPost=(id:string)=>setLockedPosts(current=>{const next={...current};delete next[id];return next})
   const purchasePost=(id:string)=>setPurchasedPostIds(current=>current.includes(id)?current:[...current,id])
   const deletePost=(id:string)=>{const deleted=read<string[]>('socialstart-deleted-post-ids',[]);if(!deleted.includes(id))localStorage.setItem('socialstart-deleted-post-ids',JSON.stringify([...deleted,id]));scheduleCloudSave();setUserPosts(current=>current.filter(post=>post.id!==id));setPublicPosts(current=>current.filter(post=>post.id!==id));setSavedPosts(current=>current.filter(post=>post.id!==id));setLikedPostIds(current=>current.filter(item=>item!==id));setPostMetrics(current=>{const next={...current};delete next[id];return next});setLockedPosts(current=>{const next={...current};delete next[id];return next});setPurchasedPostIds(current=>current.filter(item=>item!==id))}

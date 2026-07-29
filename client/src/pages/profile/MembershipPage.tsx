@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Crown, DollarSign, OctagonX } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { endMembershipPlan, membershipPlanFor, saveMembershipPlan } from '../../lib/memberships'
+import { useApp } from '../../context/AppContext'
 
 export function MembershipPage() {
   const navigate = useNavigate()
+  const { userPosts, unlockPost } = useApp()
   const profile = (() => { try { return JSON.parse(localStorage.getItem('socialstart-settings-profile') || '{}') as { username?: string } } catch { return {} } })()
   const existing = profile.username ? membershipPlanFor(profile.username) : null
   const [price, setPrice] = useState(existing?.price.toFixed(2) || '7.99')
@@ -12,6 +14,7 @@ export function MembershipPage() {
   const save = () => {
     const amount = Number(price)
     if (!profile.username || !Number.isFinite(amount) || amount <= 0) return
+    if (!existing) userPosts.forEach(post => unlockPost(post.id))
     saveMembershipPlan({ username: profile.username, price: amount, createdAt: existing?.createdAt || Date.now() })
     navigate('/profile')
   }
