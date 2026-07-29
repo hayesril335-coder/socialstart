@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import { formatCount } from '../../lib/format'
 
@@ -11,11 +11,27 @@ export type WorldMapPerson = {
   latitude: number
   longitude: number
 }
+type WorldMapCluster = {
+  key: string
+  latitude: number
+  longitude: number
+  people: WorldMapPerson[]
+}
 
 export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<GlobeMethods | undefined>(undefined)
   const [size, setSize] = useState({ width: 700, height: 230 })
+  const clusters = useMemo(() => {
+    const grouped = new Map<string, WorldMapCluster>()
+    people.forEach(person => {
+      const key = person.location.trim().toLowerCase()
+      const cluster = grouped.get(key)
+      if (cluster) cluster.people.push(person)
+      else grouped.set(key, { key, latitude: person.latitude, longitude: person.longitude, people: [person] })
+    })
+    return [...grouped.values()]
+  }, [people])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -41,8 +57,7 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
     controls.maxDistance = 420
   }, [])
 
-  const makeMarker = useCallback((value: object) => {
-    const person = value as WorldMapPerson
+  const makePersonMarker = (person: WorldMapPerson) => {
     const link = document.createElement('a')
     link.className = 'globe-person'
     link.href = `/profile/${encodeURIComponent(person.username)}`
@@ -74,6 +89,14 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
     city.textContent = person.location.split(',')[0]
     link.appendChild(city)
     return link
+  }
+
+  const makeMarkerCluster = useCallback((value: object) => {
+    const cluster = value as WorldMapCluster
+    const group = document.createElement('div')
+    group.className = 'globe-cluster'
+    cluster.people.forEach(person => group.appendChild(makePersonMarker(person)))
+    return group
   }, [])
 
   return <div ref={containerRef} className="community-map interactive-world-map">
@@ -87,11 +110,11 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
       showAtmosphere
       atmosphereColor="#7ec8f5"
       atmosphereAltitude={0.18}
-      htmlElementsData={people}
+      htmlElementsData={clusters}
       htmlLat="latitude"
       htmlLng="longitude"
       htmlAltitude={0}
-      htmlElement={makeMarker}
+      htmlElement={makeMarkerCluster}
       onGlobeReady={prepareGlobe}
     />
     <div className="map-controls-hint">Drag to rotate · Scroll or pinch to zoom</div>

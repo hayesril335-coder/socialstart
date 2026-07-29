@@ -56,7 +56,8 @@ export function ProfilePage(){
  const livePost=!own?posts.find(post=>post.username===profile.user&&post.mediaType==='live'):undefined
  const isOnline=own?true:cloudProfile?Date.now()-(cloudProfile.lastActiveAt||0)<150000:profile.user.length%2===0
  const membership=membershipPlanFor(profile.user),hasMembership=Boolean(activeMembershipFor(profile.user))
- const mapFollowing=own?followingUsernames:(targetAccountId?followingByAccount[targetAccountId]||[]:[])
+ const savedAccountFollowing=targetAccountId?(followingByAccount[targetAccountId]||[]):[]
+ const mapFollowing=own?[...new Set([...followingUsernames,...savedAccountFollowing])]:savedAccountFollowing
  const socialPointsFor=(targetUsername:string,targetCloud?:{stats?:{socialPoints?:number}},isMock=false)=>targetCloud?.stats?.socialPoints??(isMock?100+hashValue(targetUsername)%900:0)
  const mapPeople=mapFollowing.map(followedUsername=>{
   const post=resolvePostIdentity(followedUsername),cloud=resolveCloudProfile(followedUsername),canonicalUsername=cloud?.username||post?.username||followedUsername,mock=profiles.find(item=>item.username===canonicalUsername),name=cloud?.name||mock?.name||post?.author||canonicalUsername,avatar=cloud?.avatar||mock?.avatar||post?.avatar||'',location=cloud?.location||mock?.location||post?.location||'Los Angeles, CA',socialPoints=socialPointsFor(canonicalUsername,cloud,Boolean(mock))
