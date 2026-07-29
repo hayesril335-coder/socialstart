@@ -38,7 +38,7 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
     controls.autoRotateSpeed = 0.32
     controls.enablePan = false
     controls.enableZoom = true
-    controls.minDistance = 125
+    controls.minDistance = 102
     controls.maxDistance = 420
   }, [])
 
