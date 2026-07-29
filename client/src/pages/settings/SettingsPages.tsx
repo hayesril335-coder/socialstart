@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { ChevronRight, CircleDollarSign, CreditCard, Headphones, LockKeyhole, LogOut, MapPin, Mic, Moon, UserRound, WalletCards } from 'lucide-react'
+import { ChevronRight, CircleDollarSign, CreditCard, Crown, Headphones, LockKeyhole, LogOut, MapPin, Mic, Moon, Store, UserRound, WalletCards } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../../context/AppContext'
 import { signOut } from 'firebase/auth'
@@ -28,7 +28,8 @@ const readValues=(type:string)=>{try{const values={...defaults[type],...JSON.par
 
 export function SettingsPage(){
  const {dark,setDark}=useApp(),navigate=useNavigate()
- const items=[['/settings/profile','Edit profile',UserRound],['/settings/account','Account details',LockKeyhole],['/settings/security','Security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/devices','Devices',Headphones],['/settings/wallet','Wallet',WalletCards]] as const
+ const profile=readValues('Profile'),membershipExists=Boolean(localStorage.getItem('socialstart-membership-plans')?.includes(`"${profile.username}"`))
+ const items=[['/settings/profile','Edit profile',UserRound],[`/store/${profile.username||'creator'}/manage`,'Online Store',Store],['/membership/setup',membershipExists?'Edit Subscription':'Create Subscription',Crown],['/settings/account','Account details',LockKeyhole],['/settings/security','Security',LockKeyhole],['/settings/billing','Billing details',CreditCard],['/settings/address','Addresses',MapPin],['/settings/devices','Devices',Headphones],['/settings/wallet','Wallet',WalletCards]] as const
  const logout=async()=>{
   const moderatorSession=localStorage.getItem('socialstart-moderator-session')==='true'
   if(moderatorSession){

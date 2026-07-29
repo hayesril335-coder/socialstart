@@ -1,4 +1,4 @@
-import { collection, documentId, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
+import { collection, deleteDoc, documentId, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 import type { User } from 'firebase/auth'
 import { db } from './firebase'
 import { hydrateChunkedMedia } from './mediaStorage'
@@ -28,8 +28,11 @@ const isSyncableKey = (key: string) =>
 const collectState = () => {
   const state: Record<string, string> = {}
   let size = 0
-  for (let index = 0; index < localStorage.length; index++) {
-    const key = localStorage.key(index)
+  const priority = ['socialstart-settings-profile','socialstart-user-posts','socialstart-post-metrics','socialstart-locked-posts','socialstart-deleted-post-ids','socialstart-membership-plans','socialstart-following']
+  const keys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).filter((key):key is string=>Boolean(key))
+  const priorityScore=(key:string)=>key.startsWith('socialstart-account-store-')?1:(priority.indexOf(key)<0?priority.length:priority.indexOf(key))
+  keys.sort((a,b)=>priorityScore(a)-priorityScore(b))
+  for (const key of keys) {
     if (!key || !isSyncableKey(key)) continue
     const value = localStorage.getItem(key)
     if (value === null) continue
@@ -137,6 +140,9 @@ const syncSharedData = async (user: User) => {
     await writeWhenChanged(`stores/${user.uid}`, { ...store, ownerId: user.uid })
   }
 
+  const deletedPostIds = readJson<string[]>('socialstart-deleted-post-ids', [])
+  await Promise.all(deletedPostIds.map(id => deleteDoc(doc(db, 'posts', id)).catch(()=>undefined)))
+
   await Promise.all(ownPosts.map(async post => {
     const payload = { ...post, ownerAccountId: user.uid, ownerId: user.uid }
     // Firestore has a 1 MiB per-document limit. Normal photos fit; very large
@@ -157,7 +163,7 @@ const syncSharedData = async (user: User) => {
   await Promise.all(commentWrites)
 }
 
-const loadSharedData = async () => {
+const loadSharedData = async (user?:User) => {
   const [postResults, storeResults, profileResults] = await Promise.all([
     getDocs(query(collection(db, 'posts'), limit(60))),
     getDocs(query(collection(db, 'stores'), limit(100))),
@@ -166,7 +172,13 @@ const loadSharedData = async () => {
   const localPosts = readJson<Array<Record<string, unknown>>>('socialstart-public-posts', [])
   const postsById = new Map(localPosts.map(post => [String(post.id), post]))
   postResults.forEach(result => postsById.set(result.id, { ...result.data(), id: result.id }))
+  readJson<string[]>('socialstart-deleted-post-ids', []).forEach(id=>postsById.delete(id))
   localStorage.setItem('socialstart-public-posts', JSON.stringify([...postsById.values()]))
+  if(user){
+    const profile=readJson<{username?:string}>('socialstart-settings-profile',{}),ownPosts=readJson<Array<Record<string,unknown>>>('socialstart-user-posts',[]),ownById=new Map(ownPosts.map(post=>[String(post.id),post]))
+    postsById.forEach(post=>{if(post.ownerAccountId===user.uid||post.ownerId===user.uid||Boolean(profile.username&&post.username===profile.username))ownById.set(String(post.id),post)})
+    localStorage.setItem('socialstart-user-posts',JSON.stringify([...ownById.values()]))
+  }
   storeResults.forEach(result => localStorage.setItem(`socialstart-account-store-${result.id}`, JSON.stringify(result.data())))
   profileResults.forEach(result => localStorage.setItem(`socialstart-public-profile-${result.id}`, JSON.stringify(result.data())))
   const postIds = postResults.docs.map(result => result.id)
@@ -226,7 +238,10 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
   }
   if (snapshot.exists()) {
     const cloudState = snapshot.data().state
-    const state = cloudState && typeof cloudState === 'object' ? { ...cloudState as Record<string, string> } : {}
+    const savedCloudState = cloudState && typeof cloudState === 'object' ? { ...cloudState as Record<string, string> } : {}
+    const localUpdatedAt = Number(readJson<number>('socialstart-state-updated-at', 0))
+    const cloudUpdatedAt = Number(JSON.parse(savedCloudState['socialstart-state-updated-at'] || '0'))
+    const state = localStateBelongsToUser && localUpdatedAt > cloudUpdatedAt ? { ...savedCloudState, ...legacyState } : savedCloudState
     let repaired = false
     if (cloudState && typeof cloudState === 'object') {
       try {
@@ -267,7 +282,7 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
   localStorage.setItem('socialstart-active-account', user.uid)
   localStorage.setItem('socialstart-authenticated', 'true')
   await syncSharedData(user)
-  await loadSharedData()
+  await loadSharedData(user)
   ready = true
   window.clearInterval(presenceTimer)
   await updatePresence()
@@ -276,6 +291,7 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
 
 export function scheduleCloudSave() {
   if (!ready || !cloudUser) return
+  localStorage.setItem('socialstart-state-updated-at', JSON.stringify(Date.now()))
   window.clearTimeout(saveTimer)
   saveTimer = window.setTimeout(() => {
     if (!cloudUser) return

@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsIncoming() {
+      return signedIn()
+        && (request.resource.data.ownerId == request.auth.uid
+          || request.resource.data.ownerAccountId == request.auth.uid);
+    }
+
+    function ownsExisting() {
+      return signedIn()
+        && (resource.data.ownerId == request.auth.uid
+          || resource.data.ownerAccountId == request.auth.uid);
+    }
+
+    match /users/{userId} {
+      allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /publicProfiles/{userId} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /stores/{userId} {
+      allow read: if signedIn();
+      allow create, update, delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /posts/{postId} {
+      allow read: if signedIn();
+      allow create, update: if ownsIncoming();
+      allow delete: if ownsExisting();
+    }
+
+    match /comments/{postId} {
+      allow read, create, update: if signedIn();
+    }
+
+    match /mediaChunks/{chunkId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.data is string
+        && request.resource.data.data.size() <= 600000;
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+  }
+}

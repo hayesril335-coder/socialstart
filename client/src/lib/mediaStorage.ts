@@ -18,9 +18,18 @@ const validateBlob = (blob: Blob) => {
 }
 
 const blobToDataUrl=(blob:Blob)=>new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob)})
+const compressImageDataUrl=async(blob:Blob)=>{
+  const source=URL.createObjectURL(blob)
+  try{
+    const image=await new Promise<HTMLImageElement>((resolve,reject)=>{const element=new Image();element.onload=()=>resolve(element);element.onerror=()=>reject(new Error('That image could not be prepared for saving.'));element.src=source})
+    const scale=Math.min(1,960/image.width,960/image.height),canvas=document.createElement('canvas')
+    canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));canvas.getContext('2d')?.drawImage(image,0,0,canvas.width,canvas.height)
+    return canvas.toDataURL('image/jpeg',.58)
+  }finally{URL.revokeObjectURL(source)}
+}
 
-const saveChunkedVideo=async(blob:Blob,uid:string)=>{
-  if(blob.size>8*1024*1024)throw new Error('Video uploads larger than 8 MB currently require Firebase Storage to be available.')
+const saveChunkedMedia=async(blob:Blob,uid:string)=>{
+  if(blob.size>8*1024*1024)throw new Error('Uploads larger than 8 MB currently require Firebase Storage to be available.')
   const mediaId=`${uid}-${crypto.randomUUID()}`,data=await blobToDataUrl(blob),chunkSize=600_000,total=Math.ceil(data.length/chunkSize)
   await Promise.all(Array.from({length:total},(_,index)=>setDoc(doc(db,'mediaChunks',`${mediaId}-${index}`),{mediaId,ownerId:uid,index,total,data:data.slice(index*chunkSize,(index+1)*chunkSize),contentType:blob.type,createdAt:serverTimestamp()})))
   localStorage.setItem(chunkCacheKey(mediaId),data)
@@ -58,7 +67,7 @@ export async function uploadMedia(source: string, folder: string) {
     })
     const snapshot = await Promise.race([
       upload,
-      new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), 25_000)),
+      new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('UPLOAD_TIMEOUT')), blob.type.startsWith('image/') ? 10_000 : 25_000)),
     ])
     localStorage.setItem(usageKey, String(usedToday + blob.size))
     return await getDownloadURL(snapshot.ref)
@@ -66,14 +75,15 @@ export async function uploadMedia(source: string, folder: string) {
     console.error('SocialStart media upload failed', error)
     try{
       const response=await fetch(source),blob=await response.blob()
-      if(blob.type.startsWith('video/')&&user){
-        try{return await saveChunkedVideo(blob,user.uid)}
+      if(user){
+        try{return await saveChunkedMedia(blob,user.uid)}
         catch(fallbackError){
-          console.error('SocialStart chunked video fallback failed',fallbackError)
+          console.error('SocialStart chunked media fallback failed',fallbackError)
+          if(blob.type.startsWith('image/'))return await compressImageDataUrl(blob)
           if(blob.size<=8*1024*1024)return await blobToDataUrl(blob)
         }
       }
-    }catch(fallbackError){console.error('SocialStart chunked video fallback failed',fallbackError)}
+    }catch(fallbackError){console.error('SocialStart chunked media fallback failed',fallbackError)}
     // A compressed data URL is still account-persistent and is preferable to an
     // upload control that never finishes when Storage is temporarily unavailable.
     if (source.startsWith('data:') && source.length < 750_000) return source
