@@ -18,7 +18,7 @@ const mapCoordinates=(location:string,username:string,knownLatitude?:number,know
  const latitudeJitter=((hash%11)-5)*.008,longitudeJitter=(((Math.floor(hash/11))%11)-5)*.01
  return {latitude:latitude+latitudeJitter,longitude:longitude+longitudeJitter}
 }
-type CloudProfile={uid?:string;name?:string;username?:string;avatar?:string;bio?:string;location?:string;lastActiveAt?:number;stats?:{followers?:number;following?:number;likes?:number;views?:number;socialPoints?:number}}
+type CloudProfile={uid?:string;name?:string;username?:string;avatar?:string;bio?:string;location?:string;lastActiveAt?:number;socialPoints?:number;stats?:{followers?:number;following?:number;likes?:number;views?:number;socialPoints?:number}}
 
 export function ProfilePage(){
  const {username}=useParams(), own=!username
@@ -29,10 +29,21 @@ export function ProfilePage(){
  useEffect(()=>{const update=()=>setSavedProfile(readOwnProfile());window.addEventListener('socialstart-profile-updated',update);return()=>window.removeEventListener('socialstart-profile-updated',update)},[])
  const foundProfile=profiles.find(item=>item.username===username)
  const cloudProfiles=readCloudProfiles()
+ const activeAccountId=localStorage.getItem('socialstart-active-account')||''
  const resolvePostIdentity=(identifier?:string)=>publicPosts.find(item=>item.ownerAccountId===identifier)||publicPosts.find(item=>item.username===identifier)
  const resolveCloudProfile=(identifier?:string)=>{
   const postIdentity=resolvePostIdentity(identifier)
   return (cloudProfiles.find(item=>item.uid===identifier)||cloudProfiles.find(item=>Boolean(postIdentity?.ownerAccountId)&&item.uid===postIdentity?.ownerAccountId)||cloudProfiles.find(item=>item.username===identifier)) as CloudProfile|undefined
+ }
+ const resolveMapCloudProfile=(identifier:string)=>{
+  const exact=cloudProfiles.find(item=>item.uid===identifier) as CloudProfile|undefined
+  if(exact)return exact
+  const postIdentity=resolvePostIdentity(identifier)
+  const postOwner=postIdentity?.ownerAccountId
+   ? cloudProfiles.find(item=>item.uid===postIdentity.ownerAccountId) as CloudProfile|undefined
+   : undefined
+  if(postOwner&&postOwner.uid!==activeAccountId)return postOwner
+  return cloudProfiles.find(item=>item.username===identifier&&item.uid!==activeAccountId) as CloudProfile|undefined
  }
  const cloudProfile=resolveCloudProfile(username)
  const publicUserPosts=publicPosts.filter(item=>item.username===username||item.ownerAccountId===username||(cloudProfile?.uid&&item.ownerAccountId===cloudProfile.uid))
@@ -58,11 +69,16 @@ export function ProfilePage(){
  const membership=membershipPlanFor(profile.user),hasMembership=Boolean(activeMembershipFor(profile.user))
  const savedAccountFollowing=targetAccountId?(followingByAccount[targetAccountId]||[]):[]
  const mapFollowing=own?[...new Set([...followingUsernames,...savedAccountFollowing])]:savedAccountFollowing
- const socialPointsFor=(targetUsername:string,targetCloud?:{stats?:{socialPoints?:number}},isMock=false)=>targetCloud?.stats?.socialPoints??(isMock?100+hashValue(targetUsername)%900:0)
- const mapPeople=mapFollowing.map(followedUsername=>{
-  const post=resolvePostIdentity(followedUsername),cloud=resolveCloudProfile(followedUsername),canonicalUsername=cloud?.username||post?.username||followedUsername,mock=profiles.find(item=>item.username===canonicalUsername),name=cloud?.name||mock?.name||post?.author||canonicalUsername,avatar=cloud?.avatar||mock?.avatar||post?.avatar||'',location=cloud?.location||mock?.location||post?.location||'Los Angeles, CA',socialPoints=socialPointsFor(canonicalUsername,cloud,Boolean(mock))
-  return {username:canonicalUsername,name,avatar,location,socialPoints,...mapCoordinates(location,canonicalUsername,post?.approximateLatitude,post?.approximateLongitude)}
- })
+ const socialPointsFor=(targetUsername:string,targetCloud?:{socialPoints?:number;stats?:{socialPoints?:number}},isMock=false)=>targetCloud?.socialPoints??targetCloud?.stats?.socialPoints??(isMock?100+hashValue(targetUsername)%900:0)
+ const mapPeople=[...mapFollowing.reduce((directory,followedIdentifier)=>{
+  const cloud=resolveMapCloudProfile(followedIdentifier)
+  const post=publicPosts.find(item=>Boolean(cloud?.uid)&&item.ownerAccountId===cloud?.uid)||resolvePostIdentity(followedIdentifier)
+  const accountKey=cloud?.uid||post?.ownerAccountId||followedIdentifier.toLowerCase()
+  if(accountKey===activeAccountId||directory.has(accountKey))return directory
+  const canonicalUsername=cloud?.username||post?.username||followedIdentifier,mock=profiles.find(item=>item.username===canonicalUsername),name=cloud?.name||post?.author||mock?.name||canonicalUsername,avatar=cloud?.avatar||post?.avatar||mock?.avatar||'',location=cloud?.location||post?.location||mock?.location||'Los Angeles, CA',socialPoints=socialPointsFor(canonicalUsername,cloud,Boolean(mock))
+  directory.set(accountKey,{username:cloud?.uid||canonicalUsername,name,avatar,location,socialPoints,...mapCoordinates(location,accountKey,post?.approximateLatitude,post?.approximateLongitude)})
+  return directory
+ },new Map<string,{username:string;name:string;avatar:string;location:string;socialPoints:number;latitude:number;longitude:number}>()).values()]
  const profileSocialPoints=own?points:socialPointsFor(profile.user,cloudProfile,Boolean(foundProfile))
 
  return <div className="profile-page">

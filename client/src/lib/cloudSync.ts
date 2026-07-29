@@ -133,6 +133,7 @@ const syncSharedData = async (user: User) => {
     uid: user.uid,
     email: user.email || '',
     stats,
+    socialPoints: stats.socialPoints,
   })
 
   const storeKey = `socialstart-account-store-${user.uid}`
@@ -352,12 +353,23 @@ export function persistSocialPointBalance(points: number) {
   window.clearTimeout(socialPointsTimer)
   socialPointsTimer = window.setTimeout(() => {
     if (!cloudUser) return
-    void setDoc(doc(db, 'users', cloudUser.uid), {
-      state: collectState(),
-      socialPoints: Math.max(0, points),
-      email: cloudUser.email || '',
-      updatedAt: serverTimestamp(),
-    }, { merge: true }).catch(error => console.error('SocialStart points could not be saved', error))
+    const savedPoints=Math.max(0,points),profileKey=`socialstart-public-profile-${cloudUser.uid}`
+    const cachedProfile=readJson<Record<string,unknown>>(profileKey,{})
+    localStorage.setItem(profileKey,JSON.stringify({...cachedProfile,socialPoints:savedPoints,stats:{...(cachedProfile.stats as Record<string,unknown>||{}),socialPoints:savedPoints}}))
+    void Promise.all([
+      setDoc(doc(db, 'users', cloudUser.uid), {
+        state: collectState(),
+        socialPoints: savedPoints,
+        email: cloudUser.email || '',
+        updatedAt: serverTimestamp(),
+      }, { merge: true }),
+      setDoc(doc(db, 'publicProfiles', cloudUser.uid), {
+        uid: cloudUser.uid,
+        socialPoints: savedPoints,
+        stats: { socialPoints: savedPoints },
+        updatedAt: serverTimestamp(),
+      }, { merge: true }),
+    ]).catch(error => console.error('SocialStart points could not be saved', error))
   }, 200)
 }
 
