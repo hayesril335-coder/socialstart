@@ -61,8 +61,6 @@ export function ProfilePage(){
  const targetAccountId=own?localStorage.getItem('socialstart-active-account'):cloudProfile?.uid||publicIdentity?.ownerAccountId
  const followerCount=Object.values(followingByAccount).filter(following=>following.includes(profile.user)).length
  const followingCount=targetAccountId?(followingByAccount[targetAccountId]?.length||0):(own?followingUsernames.length:followingProfiles.length)
- const stats=own?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:cloudProfile?.stats?[String(cloudProfile.stats.followers||0),String(cloudProfile.stats.following||0),String(cloudProfile.stats.likes||0),String(cloudProfile.stats.views||0)]:publicIdentity?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:[String(followerProfiles.length),String(followingProfiles.length),'18.6K','94.2K']
- const formattedStats=stats.map(formatCount)
  const visiblePosts=(tab==='Saved'?savedPosts:userPosts).filter(post=>post.postType!=='story')
  const livePost=!own?posts.find(post=>post.username===profile.user&&post.mediaType==='live'):undefined
  const isOnline=own?true:cloudProfile?Date.now()-(cloudProfile.lastActiveAt||0)<150000:profile.user.length%2===0
@@ -71,20 +69,28 @@ export function ProfilePage(){
  const mapFollowing=own?[...new Set([...followingUsernames,...savedAccountFollowing])]:savedAccountFollowing
  const socialPointsFor=(targetUsername:string,targetCloud?:{socialPoints?:number;stats?:{socialPoints?:number}},isMock=false)=>targetCloud?.socialPoints??targetCloud?.stats?.socialPoints??(isMock?100+hashValue(targetUsername)%900:0)
  const mapPeople=[...mapFollowing.reduce((directory,followedIdentifier)=>{
-  const cloud=resolveMapCloudProfile(followedIdentifier)
-  const post=publicPosts.find(item=>Boolean(cloud?.uid)&&item.ownerAccountId===cloud?.uid)||resolvePostIdentity(followedIdentifier)
-  const accountKey=cloud?.uid||post?.ownerAccountId||followedIdentifier.toLowerCase()
+  const identifier=followedIdentifier.trim(),ownUsername=(savedProfile.username||'').trim().toLowerCase()
+  if(!identifier||identifier===activeAccountId||identifier.toLowerCase()===ownUsername)return directory
+  const resolvedCloud=resolveMapCloudProfile(identifier)
+  const copiedOwnProfile=Boolean(resolvedCloud?.uid&&resolvedCloud.uid!==activeAccountId&&ownUsername&&resolvedCloud.username?.trim().toLowerCase()===ownUsername&&resolvedCloud.name===savedProfile.name&&resolvedCloud.avatar===savedProfile.avatar)
+  const cloud=copiedOwnProfile?undefined:resolvedCloud
+  const resolvedPost=publicPosts.find(item=>Boolean(cloud?.uid)&&item.ownerAccountId===cloud?.uid)||resolvePostIdentity(identifier)
+  const post=resolvedPost?.ownerAccountId===activeAccountId?undefined:resolvedPost
+  const canonicalUsername=cloud?.username||post?.username||identifier
+  const accountKey=cloud?.uid||post?.ownerAccountId||canonicalUsername.toLowerCase()
   if(accountKey===activeAccountId||directory.has(accountKey))return directory
-  const canonicalUsername=cloud?.username||post?.username||followedIdentifier,mock=profiles.find(item=>item.username===canonicalUsername),name=cloud?.name||post?.author||mock?.name||canonicalUsername,avatar=cloud?.avatar||post?.avatar||mock?.avatar||'',location=cloud?.location||post?.location||mock?.location||'Los Angeles, CA',socialPoints=socialPointsFor(canonicalUsername,cloud,Boolean(mock))
+  const mock=profiles.find(item=>item.username===canonicalUsername),name=cloud?.name||post?.author||mock?.name||canonicalUsername,avatar=cloud?.avatar||post?.avatar||mock?.avatar||'',location=cloud?.location||post?.location||mock?.location||'Los Angeles, CA',socialPoints=socialPointsFor(canonicalUsername,cloud,Boolean(mock))
   directory.set(accountKey,{username:cloud?.uid||canonicalUsername,name,avatar,location,socialPoints,...mapCoordinates(location,accountKey,post?.approximateLatitude,post?.approximateLongitude)})
   return directory
  },new Map<string,{username:string;name:string;avatar:string;location:string;socialPoints:number;latitude:number;longitude:number}>()).values()]
+ const stats=own?[String(followerCount),String(mapPeople.length),String(totalLikes),String(totalViews)]:cloudProfile?.stats?[String(cloudProfile.stats.followers||0),String(cloudProfile.stats.following||0),String(cloudProfile.stats.likes||0),String(cloudProfile.stats.views||0)]:publicIdentity?[String(followerCount),String(followingCount),String(totalLikes),String(totalViews)]:[String(followerProfiles.length),String(followingProfiles.length),'18.6K','94.2K']
+ const formattedStats=stats.map(formatCount)
  const profileSocialPoints=own?points:socialPointsFor(profile.user,cloudProfile,Boolean(foundProfile))
 
  return <div className="profile-page">
   <section className="profile-hero"><div className="profile-identity"><Link to={`/profile/${profile.user}/story`} className={`avatar-ring ${isOnline?'online':'offline'}`} aria-label={`View ${profile.name}'s story`}><img src={profile.avatar}/><i title={isOnline?'Online':'Offline'}/></Link><p className="profile-username">{profile.user}</p></div><div className="profile-main"><h1>{profile.name}</h1><p className="bio">{profile.bio}</p><p className="location"><MapPin/> {profile.location}</p>{!own&&<div className="profile-buttons"><button onClick={()=>toggleFollow(profile.user)} className="primary-btn">{followingUsernames.includes(profile.user)?'Following':'Follow'}</button><Link to={`/inbox/${profile.user}`} className="secondary-btn">Message</Link><Link to={`/store/${cloudProfile?.uid||profile.user}`} className="secondary-btn"><Store/> Online store</Link>{membership&&!hasMembership&&<Link className="membership-purchase" to={`/membership/${profile.user}/checkout`}><Crown/> Purchase Membership · ${membership.price.toFixed(2)}/month</Link>}{membership&&hasMembership&&<span className="membership-active"><Crown/> Member · renews monthly</span>}</div>}</div></section>
   <section className="social-point-summary"><div><span>SOCIAL POINTS</span><b>{formatCount(profileSocialPoints)}</b></div><small>Earn points from views, likes, follows, saves, and activity.</small></section>
-  {own&&<section className="profile-map-card"><header><div><p className="eyebrow">FOLLOWING MAP</p><h2>Where your community is</h2></div><MapPin/></header>{mapPeople.length?<Suspense fallback={<div className="community-map map-loading">Loading world map…</div>}><ProfileWorldMap people={mapPeople}/></Suspense>:<div className="community-map"><div className="map-empty"><MapPin/><b>Your following map is ready</b><span>Follow people to see their profile pictures in their selected cities.</span></div></div>}</section>}
+  {own&&<section className="profile-map-card"><header><div><p className="eyebrow">FOLLOWING MAP · {mapPeople.length} {mapPeople.length===1?'PERSON':'PEOPLE'}</p><h2>Where your community is</h2></div><MapPin/></header>{mapPeople.length?<><Suspense fallback={<div className="community-map map-loading">Loading world map…</div>}><ProfileWorldMap people={mapPeople}/></Suspense><div className="map-following-roster" aria-label="Everyone you follow on the map">{mapPeople.map(person=><Link to={`/profile/${encodeURIComponent(person.username)}`} key={person.username}><span>{person.avatar?<img src={person.avatar} alt=""/>:<i>{person.name.slice(0,1)}</i>}</span><div><b>{person.name}</b><small>{formatCount(person.socialPoints)} points · {person.location}</small></div></Link>)}</div></>:<div className="community-map"><div className="map-empty"><MapPin/><b>Your following map is ready</b><span>Follow people to see their profile pictures in their selected cities.</span></div></div>}</section>}
   <section className="stat-strip"><button onClick={()=>setConnectionModal('Followers')}><b>{formattedStats[0]}</b><span>Followers</span></button><button onClick={()=>setConnectionModal('Following')}><b>{formattedStats[1]}</b><span>Following</span></button><div><b>{formattedStats[2]}</b><span>Total likes</span></div><div><b>{formattedStats[3]}</b><span>Total views</span></div>{own&&<div><b>{formatCurrency(balance)}</b><span>Balance</span></div>}</section>
   {livePost&&<section className="profile-live"><p className="eyebrow">STREAMING LIVE NOW</p><PostCard post={livePost}/></section>}
   {own&&<div className="profile-tabs hashtag-tabs"><Link to="/hashtags"><Hash/> Followed hashtags</Link><Link to="/hashtags/created"><Hash/> Created hashtags</Link></div>}
