@@ -168,7 +168,7 @@ const loadSharedData = async (user?:User) => {
   const [postResults, storeResults, profileResults] = await Promise.all([
     getDocs(query(collection(db, 'posts'), limit(60))),
     getDocs(query(collection(db, 'stores'), limit(100))),
-    getDocs(query(collection(db, 'publicProfiles'), limit(100))),
+    getDocs(query(collection(db, 'publicProfiles'), limit(500))),
   ])
   const localPosts = readJson<Array<Record<string, unknown>>>('socialstart-public-posts', [])
   const postsById = new Map(localPosts.map(post => [String(post.id), post]))
