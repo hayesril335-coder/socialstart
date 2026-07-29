@@ -87,6 +87,7 @@
 .banner-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 .banner-actions button{border:1px solid rgba(255,255,255,.65);background:rgba(35,13,21,.45);color:white;border-radius:10px;min-height:42px;padding:0 14px;display:inline-flex;align-items:center;gap:7px;font-weight:700}
 .banner-actions button svg{width:17px;height:17px}
+.banner-actions .banner-save.saved,.banner-actions .banner-save.saved:disabled{border-color:#278b52;background:#278b52;color:white;opacity:1}
 .banner-actions span{font-size:11px;font-weight:700}
 @media(max-width:760px){.store-banner-wide{min-height:250px;padding:30px 24px;align-items:flex-end}.banner-actions{justify-content:flex-start}}
 .following-stories{width:min(720px,100%);margin:18px auto 0;display:flex;gap:14px;overflow-x:auto;padding:2px 4px 8px;text-align:center}

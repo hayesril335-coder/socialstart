@@ -76,11 +76,11 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
       width={size.width}
       height={size.height}
       backgroundColor="rgba(0,0,0,0)"
-      globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+      globeImageUrl="https://unpkg.com/three-globe/example/img/earth-day.jpg"
       bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
       showAtmosphere
-      atmosphereColor="#d889a0"
-      atmosphereAltitude={0.14}
+      atmosphereColor="#7ec8f5"
+      atmosphereAltitude={0.18}
       htmlElementsData={people}
       htmlLat="latitude"
       htmlLng="longitude"

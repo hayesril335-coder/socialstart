@@ -339,6 +339,16 @@ export async function flushCloudSave() {
   ])
 }
 
+export async function saveStoreNow(store: Record<string, unknown>) {
+  if (!cloudUser) return
+  await setDoc(doc(db, 'stores', cloudUser.uid), {
+    ...store,
+    ownerId: cloudUser.uid,
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+  await flushCloudSave()
+}
+
 export function stopCloudSync() {
   ready = false
   cloudUser = null
