@@ -47,6 +47,12 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
     link.className = 'globe-person'
     link.href = `/profile/${encodeURIComponent(person.username)}`
     link.setAttribute('aria-label', `${person.name} in ${person.location} with ${person.socialPoints} social points`)
+    link.addEventListener('pointerdown', event => event.stopPropagation())
+    link.addEventListener('click', event => {
+      event.preventDefault()
+      event.stopPropagation()
+      window.location.assign(link.href)
+    })
 
     const badge = document.createElement('b')
     badge.textContent = `${formatCount(person.socialPoints)} pts`
