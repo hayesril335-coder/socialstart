@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Post } from '../types'
-import { awardSocialPoint, scheduleCloudSave } from '../lib/cloudSync'
+import { awardSocialPoint, persistSocialPointBalance, scheduleCloudSave } from '../lib/cloudSync'
 import { registerPostHashtags } from '../lib/hashtags'
 import { membershipPlanFor } from '../lib/memberships'
 
@@ -88,7 +88,7 @@ export function AppProvider({children}:{children:ReactNode}) {
   useEffect(()=>persist('socialstart-global-follow-graph',followingByAccount),[followingByAccount])
   useEffect(()=>{const accountId=localStorage.getItem('socialstart-active-account');if(accountId)setFollowingByAccount(current=>({...current,[accountId]:followingUsernames}))},[followingUsernames])
   useEffect(()=>persist('socialstart-shares',shareCount),[shareCount])
-  useEffect(()=>persist('socialstart-points',points),[points])
+  useEffect(()=>{persist('socialstart-points',points);persistSocialPointBalance(points)},[points])
   useEffect(()=>persist('socialstart-global-creator-points',creatorPoints),[creatorPoints])
   useEffect(()=>persist('socialstart-locked-posts',lockedPosts),[lockedPosts])
   useEffect(()=>persist('socialstart-purchased-posts',purchasedPostIds),[purchasedPostIds])

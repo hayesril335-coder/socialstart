@@ -17,6 +17,7 @@ let cloudUser: User | null = null
 let ready = false
 let saveTimer: number | undefined
 let presenceTimer: number | undefined
+let socialPointsTimer: number | undefined
 const sharedFingerprints = new Map<string, string>()
 
 const isSyncableKey = (key: string) =>
@@ -260,6 +261,11 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
   if (snapshot.exists()) {
     const cloudState = snapshot.data().state
     const savedCloudState = cloudState && typeof cloudState === 'object' ? { ...cloudState as Record<string, string> } : {}
+    const dedicatedSocialPoints = Number(snapshot.data().socialPoints)
+    if (Number.isFinite(dedicatedSocialPoints)) {
+      const stateSocialPoints = Number(JSON.parse(savedCloudState['socialstart-points'] || '0'))
+      savedCloudState['socialstart-points'] = JSON.stringify(Math.max(0, stateSocialPoints, dedicatedSocialPoints))
+    }
     const localUpdatedAt = Number(readJson<number>('socialstart-state-updated-at', 0))
     const cloudUpdatedAt = Number(JSON.parse(savedCloudState['socialstart-state-updated-at'] || '0'))
     const state = localStateBelongsToUser && localUpdatedAt > cloudUpdatedAt ? { ...savedCloudState, ...legacyState } : savedCloudState
@@ -319,6 +325,7 @@ export function scheduleCloudSave() {
     if (!cloudUser) return
     void Promise.all([setDoc(doc(db, 'users', cloudUser.uid), {
       state: collectState(),
+      socialPoints: readJson<number>('socialstart-points', 0),
       email: cloudUser.email || '',
       updatedAt: serverTimestamp(),
     }, { merge: true }), syncSharedData(cloudUser)])
@@ -332,11 +339,26 @@ export async function flushCloudSave() {
   await Promise.all([
     setDoc(doc(db, 'users', cloudUser.uid), {
       state: collectState(),
+      socialPoints: readJson<number>('socialstart-points', 0),
       email: cloudUser.email || '',
       updatedAt: serverTimestamp(),
     }, { merge: true }),
     syncSharedData(cloudUser),
   ])
+}
+
+export function persistSocialPointBalance(points: number) {
+  if (!ready || !cloudUser) return
+  window.clearTimeout(socialPointsTimer)
+  socialPointsTimer = window.setTimeout(() => {
+    if (!cloudUser) return
+    void setDoc(doc(db, 'users', cloudUser.uid), {
+      state: collectState(),
+      socialPoints: Math.max(0, points),
+      email: cloudUser.email || '',
+      updatedAt: serverTimestamp(),
+    }, { merge: true }).catch(error => console.error('SocialStart points could not be saved', error))
+  }, 200)
 }
 
 export async function saveStoreNow(store: Record<string, unknown>) {
@@ -353,6 +375,7 @@ export function stopCloudSync() {
   ready = false
   cloudUser = null
   window.clearTimeout(saveTimer)
+  window.clearTimeout(socialPointsTimer)
   window.clearInterval(presenceTimer)
   sharedFingerprints.clear()
 }
