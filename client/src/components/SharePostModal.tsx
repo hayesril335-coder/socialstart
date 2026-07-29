@@ -3,6 +3,7 @@ import { ArrowLeft, Link2, Scissors, Send, X } from 'lucide-react'
 import type { Post } from '../types'
 import { profiles } from '../utils/mockData'
 import { scheduleCloudSave } from '../lib/cloudSync'
+import { mediaUrl } from '../lib/mediaStorage'
 
 export function SharePostModal({ post, onClose, onShared }: { post: Post; onClose: () => void; onShared: () => void }) {
   const preview = useRef<HTMLVideoElement>(null)
@@ -10,11 +11,13 @@ export function SharePostModal({ post, onClose, onShared }: { post: Post; onClos
   const [end, setEnd] = useState(30)
   const [duration, setDuration] = useState(30)
   const groups=(()=>{try{return JSON.parse(localStorage.getItem('socialstart-group-chats')||'[]') as {id:string;name:string;avatar:string}[]}catch{return []}})()
-  const recipients=[...profiles.map(person=>({id:person.username,name:person.name,avatar:person.avatar,username:person.username})),...groups.map(group=>({id:group.id,name:group.name,avatar:group.avatar,username:group.id}))]
+  const isVideo=post.mediaType==='video'||/\.(mp4|webm|mov)(?:\?|$)/i.test(decodeURIComponent(post.image))
+  const resolvedMedia=mediaUrl(post.image)
+  const recipients=[...groups.map(group=>({id:group.id,name:group.name,avatar:group.avatar,username:group.id})),...profiles.map(person=>({id:person.username,name:person.name,avatar:person.avatar,username:person.username}))]
   const [recipient, setRecipient] = useState<(typeof recipients)[number] | null>(null)
 
   useEffect(() => {
-    if (post.mediaType !== 'video') return
+    if (!isVideo) return
     const video = document.createElement('video')
     video.preload = 'metadata'
     video.onloadedmetadata = () => {
@@ -22,9 +25,9 @@ export function SharePostModal({ post, onClose, onShared }: { post: Post; onClos
       setDuration(length)
       setEnd(length)
     }
-    video.src = post.image
+    video.src = resolvedMedia
     return () => { video.removeAttribute('src'); video.load() }
-  }, [post.image, post.mediaType])
+  }, [resolvedMedia, isVideo])
 
   useEffect(() => {
     if (!preview.current) return
@@ -45,19 +48,19 @@ export function SharePostModal({ post, onClose, onShared }: { post: Post; onClos
     messages.push({
       text: `Shared ${post.author}'s post`,
       mine: true,
-      post: { ...post, trimStart: post.mediaType === 'video' ? start : 0, trimEnd: post.mediaType === 'video' ? end : undefined },
+      post: { ...post, mediaType:isVideo?'video':post.mediaType, trimStart: isVideo ? start : 0, trimEnd: isVideo ? end : undefined },
     })
     localStorage.setItem(key, JSON.stringify(messages))
     scheduleCloudSave()
     onShared()
   }
 
-  if (post.mediaType === 'video' && recipient) return <div className="purchase-modal share-post-modal clip-editor-modal"><div>
+  if (isVideo && recipient) return <div className="purchase-modal share-post-modal clip-editor-modal"><div>
     <button className="modal-close" onClick={onClose}><X /></button>
     <button className="clip-back" onClick={() => setRecipient(null)}><ArrowLeft /> Back</button>
     <Scissors /><h2>Choose the video clip</h2>
     <p>Move the start and end controls to send only this part to {recipient.name}.</p>
-    <video ref={preview} src={`${post.image}#t=${start},${end}`} controls playsInline />
+    <video ref={preview} src={`${resolvedMedia}#t=${start},${end}`} controls playsInline />
     <div className="clip-time-readout"><b>{start.toFixed(1)}s</b><span>{(end-start).toFixed(1)} second clip</span><b>{end.toFixed(1)}s</b></div>
     <label className="clip-range">Start time<input aria-label="Clip start time" type="range" min="0" max={Math.max(0,end-.1)} step=".1" value={start} onChange={event=>setStart(Math.min(Number(event.target.value),end-.1))}/></label>
     <label className="clip-range">End time<input aria-label="Clip end time" type="range" min={Math.min(duration,start+.1)} max={duration} step=".1" value={end} onChange={event=>setEnd(Math.max(Number(event.target.value),start+.1))}/></label>
@@ -68,8 +71,8 @@ export function SharePostModal({ post, onClose, onShared }: { post: Post; onClos
     <button className="modal-close" onClick={onClose}><X /></button>
     <Send /><h2>Share this post</h2>
     <button className="secondary-btn wide" onClick={() => void externalShare()}><Link2 /> Share outside SocialStart</button>
-    {post.mediaType === 'video' && <p className="clip-notice"><Scissors/> Choose a recipient, then select the exact part of the video to send.</p>}
+    {isVideo && <p className="clip-notice"><Scissors/> Choose a recipient, then select the exact part of the video to send.</p>}
     <p className="share-with-label">Send in SocialStart</p>
-    <div className="share-recipient-list">{recipients.map(person => <button key={person.id} onClick={() => post.mediaType === 'video' ? setRecipient(person) : sendTo(person.username)}>{person.avatar?<img src={person.avatar} />:<span className="share-group-avatar">Group</span>}<span><b>{person.name}</b><small>{groups.some(group=>group.id===person.id)?'Group chat':person.username}</small></span><Send /></button>)}</div>
+    <div className="share-recipient-list">{recipients.map(person => <button key={person.id} onClick={() => isVideo ? setRecipient(person) : sendTo(person.username)}>{person.avatar?<img src={person.avatar} />:<span className="share-group-avatar">Group</span>}<span><b>{person.name}</b><small>{groups.some(group=>group.id===person.id)?'Group chat':person.username}</small></span><Send /></button>)}</div>
   </div></div>
 }

@@ -1,6 +1,7 @@
 import { collection, documentId, doc, getDoc, getDocs, limit, query, serverTimestamp, setDoc, where } from 'firebase/firestore'
 import type { User } from 'firebase/auth'
 import { db } from './firebase'
+import { hydrateChunkedMedia } from './mediaStorage'
 
 const excludedKeys = new Set([
   'socialstart-account',
@@ -175,6 +176,7 @@ const loadSharedData = async () => {
     const results = await getDocs(query(collection(db, 'comments'), where(documentId(), 'in', ids)))
     results.forEach(result => localStorage.setItem(`socialstart-comments-${result.id}`, JSON.stringify(result.data().comments || [])))
   }
+  await hydrateChunkedMedia().catch(error=>console.error('SocialStart media hydration failed',error))
 }
 
 const updatePresence = async () => {

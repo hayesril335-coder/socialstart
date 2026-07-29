@@ -45,12 +45,13 @@ export function LivePage(){
   if(screen&&camera){
    const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d')!,screenEl=document.createElement('video'),cameraEl=document.createElement('video')
    screenEl.srcObject=screen;cameraEl.srcObject=camera;screenEl.muted=true;cameraEl.muted=true
-   await Promise.all([screenEl.play(),cameraEl.play()]);canvas.width=1280;canvas.height=720
-   const draw=()=>{ctx.drawImage(screenEl,0,0,canvas.width,canvas.height);const width=canvas.width*.25,height=width*9/16,x=canvas.width-width-24,y=24;ctx.fillStyle='#111';ctx.fillRect(x-3,y-3,width+6,height+6);ctx.drawImage(cameraEl,x,y,width,height);drawFrame.current=requestAnimationFrame(draw)}
-   draw();recorded=canvas.captureStream(30);camera.getAudioTracks().forEach(track=>recorded.addTrack(track))
+   await Promise.all([screenEl.play(),cameraEl.play()]);canvas.width=640;canvas.height=360
+   let lastDraw=0
+   const draw=(time=0)=>{if(time-lastDraw>=100){ctx.drawImage(screenEl,0,0,canvas.width,canvas.height);const width=canvas.width*.25,height=width*9/16,x=canvas.width-width-12,y=12;ctx.fillStyle='#111';ctx.fillRect(x-2,y-2,width+4,height+4);ctx.drawImage(cameraEl,x,y,width,height);lastDraw=time}drawFrame.current=requestAnimationFrame(draw)}
+   draw();recorded=canvas.captureStream(10);camera.getAudioTracks().forEach(track=>recorded.addTrack(track))
   }
   chunks.current=[]
-  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm',next=new MediaRecorder(recorded,{mimeType:mime})
+  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp8')?'video/webm;codecs=vp8':'video/webm',next=new MediaRecorder(recorded,{mimeType:mime,videoBitsPerSecond:800_000,audioBitsPerSecond:64_000})
   recorder.current=next;next.ondataavailable=event=>{if(event.data.size)chunks.current.push(event.data)};next.onstop=()=>saveReplay(new Blob(chunks.current,{type:mime}));next.start(1000)
   main.getVideoTracks()[0]?.addEventListener('ended',endLive,{once:true});setViews(1);setLive(true)
  }catch(caught){const unsupported=caught instanceof Error&&caught.message==='SCREEN_SHARE_UNSUPPORTED';setError(screenOn?(unsupported?'This browser does not support web screen sharing. Use current Chrome, Edge, or desktop Safari.':'Select a screen, window, or tab in the browser prompt, then click Share.'):'Allow camera and microphone access to start your stream.')}finally{setStarting(false)}}
