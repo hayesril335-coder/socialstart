@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
+import { useApp } from '../../context/AppContext'
 import { formatCount } from '../../lib/format'
 
 export type WorldMapPerson = {
@@ -19,6 +20,7 @@ type WorldMapCluster = {
 }
 
 export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
+  const { dark } = useApp()
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<GlobeMethods | undefined>(undefined)
   const [size, setSize] = useState({ width: 700, height: 230 })
@@ -99,17 +101,20 @@ export function ProfileWorldMap({ people }: { people: WorldMapPerson[] }) {
     return group
   }, [])
 
-  return <div ref={containerRef} className="community-map interactive-world-map">
+  return <div ref={containerRef} className={`community-map interactive-world-map ${dark ? 'map-dark' : 'map-light'}`}>
     <Globe
+      key={dark ? 'dark-earth' : 'light-earth'}
       ref={globeRef}
       width={size.width}
       height={size.height}
       backgroundColor="rgba(0,0,0,0)"
-      globeImageUrl="https://unpkg.com/three-globe/example/img/earth-day.jpg"
+      globeImageUrl={dark
+        ? 'https://unpkg.com/three-globe/example/img/earth-night.jpg'
+        : 'https://unpkg.com/three-globe/example/img/earth-day.jpg'}
       bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
       showAtmosphere
-      atmosphereColor="#7ec8f5"
-      atmosphereAltitude={0.18}
+      atmosphereColor={dark ? '#d35f79' : '#8ebfd3'}
+      atmosphereAltitude={dark ? 0.15 : 0.18}
       htmlElementsData={clusters}
       htmlLat="latitude"
       htmlLng="longitude"
