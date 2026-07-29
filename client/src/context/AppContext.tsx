@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Post } from '../types'
-import { scheduleCloudSave } from '../lib/cloudSync'
+import { awardSocialPoint, scheduleCloudSave } from '../lib/cloudSync'
 import { registerPostHashtags } from '../lib/hashtags'
 
 export type CartItem = { id:string; title:string; price:number; image:string; quantity:number; ship?:boolean; inPerson?:boolean; sellerUsername?:string }
@@ -95,6 +95,14 @@ export function AppProvider({children}:{children:ReactNode}) {
   useEffect(()=>persist('socialstart-balance',balance),[balance])
   useEffect(()=>persist('socialstart-unread-messages',unreadByConversation),[unreadByConversation])
 
+  const rewardSelf=(reason:'view'|'like'|'follow'|'save',id:string)=>{
+   const rewardId=`${reason}:${id}`,rewarded=read<string[]>('socialstart-rewarded-actions',[])
+   if(rewarded.includes(rewardId))return
+   localStorage.setItem('socialstart-rewarded-actions',JSON.stringify([...rewarded,rewardId].slice(-5000)))
+   setPoints(current=>current+1)
+   scheduleCloudSave()
+  }
+  const findPost=(id:string)=>publicPosts.find(post=>post.id===id)||userPosts.find(post=>post.id===id)
   const addToCart=(item:Omit<CartItem,'quantity'>,quantity=1)=>setCart(current=>current.some(x=>x.id===item.id)?current.map(x=>x.id===item.id?{...x,quantity:Math.min(99,x.quantity+quantity)}:x):[...current,{...item,quantity}])
   const updateCartQuantity=(id:string,quantity:number)=>setCart(current=>quantity<=0?current.filter(x=>x.id!==id):current.map(x=>x.id===id?{...x,quantity:Math.min(99,quantity)}:x))
   const addUserPost=({title,image,mediaType='image',postType='post',expiresAt,category,hashtags=[],mediaFilter,overlayText,overlayX,overlayY,trimStart,trimEnd}:{title:string;image:string;mediaType?:'image'|'video';postType?:'post'|'story';expiresAt?:number;category?:string;hashtags?:string[];mediaFilter?:string;overlayText?:string;overlayX?:number;overlayY?:number;trimStart?:number;trimEnd?:number})=>setUserPosts(current=>{
@@ -104,14 +112,17 @@ export function AppProvider({children}:{children:ReactNode}) {
     id:`mine-${Date.now()}`,author:profile.name||'Alex Morgan',username:profile.username||'alexmorgan',avatar:profile.avatar||'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=300&auto=format&fit=crop',image,title,category:category||undefined,hashtags,location:profile.location||'Los Angeles, CA',likes:0,views:'0',followers:'0',following:false,mediaType,postType,expiresAt,mediaFilter,overlayText,overlayX,overlayY,trimStart,trimEnd,ownerAccountId:localStorage.getItem('socialstart-active-account')||undefined
    } as Post,...current]
   })
-  const toggleSavedPost=(post:Post)=>setSavedPosts(current=>current.some(x=>x.id===post.id)?current.filter(x=>x.id!==post.id):[post,...current])
+  const toggleSavedPost=(post:Post)=>setSavedPosts(current=>{const removing=current.some(x=>x.id===post.id);if(!removing)rewardSelf('save',post.id);return removing?current.filter(x=>x.id!==post.id):[post,...current]})
   const togglePostLike=(id:string)=>setLikedPostIds(current=>{
    const removing=current.includes(id)
+   if(!removing){rewardSelf('like',id);const post=findPost(id);if(post)awardSocialPoint(post.username,'like_received',id)}
    setPostMetrics(metrics=>({...metrics,[id]:{likes:Math.max(0,(metrics[id]?.likes||0)+(removing?-1:1)),views:metrics[id]?.views||0}}))
    return removing?current.filter(x=>x!==id):[...current,id]
   })
   const toggleFollow=(username:string)=>setFollowingUsernames(current=>{
    if(current.includes(username))return current.filter(x=>x!==username)
+   rewardSelf('follow',username)
+   awardSocialPoint(username,'follow_received',username)
    const profile=read<{name?:string;username?:string;avatar?:string}>('socialstart-settings-profile',{})
    const alert:FollowerAlert={id:`follow-${Date.now()}-${profile.username||'member'}`,targetUsername:username,followerUsername:profile.username||'member',name:profile.name||profile.username||'A SocialStart member',avatar:profile.avatar||'',createdAt:Date.now()}
    localStorage.setItem('socialstart-global-follower-alerts',JSON.stringify([...followerAlerts(),alert].slice(-200)))
@@ -121,6 +132,8 @@ export function AppProvider({children}:{children:ReactNode}) {
   const viewPost=(id:string)=>{
    setViewedPostIds(current=>{
     if(current.includes(id))return current
+    rewardSelf('view',id)
+    const post=findPost(id);if(post)awardSocialPoint(post.username,'view_received',id)
     setPostMetrics(metrics=>({...metrics,[id]:{likes:metrics[id]?.likes||0,views:(metrics[id]?.views||0)+1}}))
     return [...current,id]
    })

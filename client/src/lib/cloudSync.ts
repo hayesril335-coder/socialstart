@@ -191,6 +191,27 @@ const loadSharedData = async (user?:User) => {
   await hydrateChunkedMedia().catch(error=>console.error('SocialStart media hydration failed',error))
 }
 
+const loadPointAwards=async(user:User)=>{
+  const profile=readJson<{username?:string}>('socialstart-settings-profile',{})
+  if(!profile.username)return
+  try{
+    const results=await getDocs(query(collection(db,'pointAwards'),where('targetUsername','==',profile.username),limit(500)))
+    const applied=readJson<string[]>('socialstart-applied-point-awards',[]),appliedSet=new Set(applied),fresh=results.docs.filter(result=>!appliedSet.has(result.id))
+    if(!fresh.length)return
+    localStorage.setItem('socialstart-points',JSON.stringify(readJson<number>('socialstart-points',0)+fresh.length))
+    localStorage.setItem('socialstart-applied-point-awards',JSON.stringify([...applied,...fresh.map(result=>result.id)].slice(-2000)))
+    localStorage.setItem('socialstart-state-updated-at',JSON.stringify(Date.now()))
+  }catch(error){console.error('SocialStart point awards could not be loaded',error)}
+}
+
+export function awardSocialPoint(targetUsername:string,reason:'view_received'|'like_received'|'follow_received',eventId:string){
+  if(!ready||!cloudUser||!targetUsername)return
+  const ownUsername=readJson<{username?:string}>('socialstart-settings-profile',{}).username
+  if(ownUsername===targetUsername)return
+  const safeId=`${cloudUser.uid}_${reason}_${targetUsername}_${eventId}`.replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,500)
+  void setDoc(doc(db,'pointAwards',safeId),{targetUsername,reason,eventId,actorId:cloudUser.uid,amount:1,createdAt:serverTimestamp()},{merge:false}).catch(error=>console.error('SocialStart point award could not be saved',error))
+}
+
 const updatePresence = async () => {
   if (!cloudUser) return
   await setDoc(doc(db, 'publicProfiles', cloudUser.uid), {
@@ -283,6 +304,7 @@ export async function prepareCloudAccount(user: User, profile?: Record<string, s
   localStorage.setItem('socialstart-authenticated', 'true')
   await syncSharedData(user)
   await loadSharedData(user)
+  await loadPointAwards(user)
   ready = true
   window.clearInterval(presenceTimer)
   await updatePresence()

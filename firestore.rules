@@ -50,5 +50,15 @@ service cloud.firestore {
         && request.resource.data.data.size() <= 600000;
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
+
+    match /pointAwards/{awardId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.amount == 1
+        && request.resource.data.targetUsername is string
+        && request.resource.data.reason in ['view_received', 'like_received', 'follow_received'];
+      allow update, delete: if false;
+    }
   }
 }
